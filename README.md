@@ -59,4 +59,6 @@ Users would appreciate multiple implementations of the algorithm(s) so they can 
 
 It would be useful to have several examples of interval data (KISS; CSV format?), along with the expected output for each, so that new versions of the algorithm can be verified.
 
+See files in test_data folder for examples.
+
 END
