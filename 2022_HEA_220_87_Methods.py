@@ -1,3 +1,24 @@
+"""
+NEC 220.87 Panel Capacity Calculator
+
+This module implements the NEC 220.87 method for calculating electrical panel capacity
+based on historical meter data. It provides both calculation functions and a web interface
+for easy use.
+
+Original methodology developed in Jupyter notebook:
+https://github.com/HomeElectricationAlliance/NEC-220.87-Methods/blob/main/2022_HEA_220_87.ipynb
+
+Key features:
+- Processes CSV files containing DateTime and kW columns
+- Handles both 15-minute and hourly interval data
+- Implements NEC 220.87 safety factors
+- Provides visual representation of load patterns
+- Calculates remaining panel capacity
+
+For more information on NEC 220.87, see:
+https://up.codes/s/determining-existing-loads
+"""
+
 import pandas as pd
 import numpy as np
 import gradio as gr
@@ -10,6 +31,14 @@ warnings.filterwarnings("ignore", category=AltairDeprecationWarning)
 
 def get_peak_hourly_load(df: pd.DataFrame) -> float:
     """Estimates the peak hourly load in kW from meter values.
+    
+    Implementation follows the methodology from the original Jupyter notebook:
+    https://github.com/HomeElectricationAlliance/NEC-220.87-Methods/blob/main/2022_HEA_220_87.ipynb
+    
+    Key aspects of the calculation:
+    - For 15-minute intervals: multiplies by 4 to get hourly equivalent
+    - Applies 1.3x safety factor for single readings per NEC 220.87
+    - Automatically detects interval type based on data
 
     Arguments:
         df:
@@ -32,7 +61,11 @@ def get_peak_hourly_load(df: pd.DataFrame) -> float:
 
 def get_remaining_panel_capacity(peak_hourly_load_kW: float, panel_size_A: int, panel_voltage_V=240) -> float:
     """Estimates the remaining panel capacity in kW from panel size and peak hourly load.
-
+    
+    Implements NEC 220.87 calculation for remaining capacity. The calculation:
+    1. Converts panel capacity from Amps to kW
+    2. Subtracts 1.25x the peak load per NEC requirements
+    
     Arguments:
         peak_hourly_load_kW:
             Estimated peak hourly load in kilowatts, see get_peak_hourly_load
@@ -46,7 +79,20 @@ def get_remaining_panel_capacity(peak_hourly_load_kW: float, panel_size_A: int, 
     return panel_size_A * panel_voltage_V / 1000 - 1.25 * peak_hourly_load_kW
 
 def process_inputs(temp_file, panel_size_A, panel_voltage_V):
-    """Process input file and parameters to calculate panel capacity and create visualization."""
+    """Process input file and parameters to calculate panel capacity and create visualization.
+    
+    This function:
+    1. Reads and validates the input CSV file
+    2. Calculates peak load and remaining capacity
+    3. Generates visualization data showing load patterns
+    4. Provides results in both kW and Amp units
+    
+    The visualization shows:
+    - Peak load line (from NEC 220.87 calculation)
+    - Maximum values by hour
+    - Mean values by hour
+    - Minimum values by hour
+    """
     try:
         if temp_file is None:
             raise gr.Error("Please upload a file")
@@ -104,7 +150,19 @@ def show_file_info(file):
         return f"File received but unable to get name: {str(file)}"
 
 def launch_gradio_interface():
-    """Launch the Gradio interface for the panel capacity calculator."""
+    """Launch the Gradio interface for the panel capacity calculator.
+    
+    Creates a web interface with:
+    - File upload for CSV data
+    - Input fields for panel specifications
+    - Results in both kW and Amp units
+    - Visualization of load patterns
+    
+    The interface runs locally on port 7861 and includes:
+    - Clear button to reset all fields
+    - Error handling for invalid inputs
+    - Interactive plot of load patterns
+    """
     
     def reset_values():
         """Reset form to default values"""
