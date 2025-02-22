@@ -25,6 +25,7 @@ import gradio as gr
 from io import StringIO
 import warnings
 from altair.utils.deprecation import AltairDeprecationWarning
+import os
 
 # Suppress Altair deprecation warnings
 warnings.filterwarnings("ignore", category=AltairDeprecationWarning)
@@ -196,10 +197,24 @@ def launch_gradio_interface():
         clear_fn=reset_values
     )
 
-    demo.launch(
-        server_name="127.0.0.1",
-        server_port=7861
-    )
+    # Check if running in Amplify
+    is_amplify = os.getenv('AWS_EXECUTION_ENV') is not None
+
+    if is_amplify:
+        # Amplify configuration
+        demo.launch(
+            server_name="0.0.0.0",
+            server_port=8080,
+            share=True,
+            auth=None,
+            ssl_verify=False
+        )
+    else:
+        # Local development configuration
+        demo.launch(
+            server_name="127.0.0.1",
+            server_port=7861
+        )
 
 if __name__ == "__main__":
     launch_gradio_interface() 
