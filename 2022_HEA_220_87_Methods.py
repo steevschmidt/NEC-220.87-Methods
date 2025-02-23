@@ -203,9 +203,9 @@ def launch_gradio_interface():
     if is_amplify:
         # Amplify configuration
         demo.launch(
-            server_name="0.0.0.0",
-            server_port=8080,
-            share=True,
+            server_name="0.0.0.0",  # Allow all incoming connections
+            server_port=80,         # Changed to standard HTTP port
+            share=False,            # Don't use sharing feature
             auth=None,
             ssl_verify=False
         )
