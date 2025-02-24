@@ -67,7 +67,7 @@ class PanelCalculator {
             this.displayResults(results);
             this.createChart(data);
         } catch (error) {
-            this.showError(error.message);
+            this.showError(error.message, error.details);
         }
     }
 
@@ -80,45 +80,63 @@ class PanelCalculator {
                     const rows = csvData.split('\n');
                     const headers = rows[0].split(',');
                     
-                    // Validate CSV structure
+                    // Validate CSV structure - only accept kWh
                     const dateTimeIndex = headers.findIndex(h => h.trim().toLowerCase() === 'datetime');
-                    const kwIndex = headers.findIndex(h => h.trim().toLowerCase() === 'kw');
+                    const kwhIndex = headers.findIndex(h => h.trim().toLowerCase() === 'kwh');
                     
-                    if (dateTimeIndex === -1 || kwIndex === -1) {
-                        throw new Error('CSV must contain DateTime and kW columns');
+                    if (dateTimeIndex === -1 || kwhIndex === -1) {
+                        throw new Error('CSV must contain DateTime and kWh columns');
                     }
 
                     // Parse data rows
                     const data = [];
+                    const errors = [];
+                    let invalidRows = 0;
+
                     for (let i = 1; i < rows.length; i++) {
                         const row = rows[i].trim();
                         if (!row) continue;
 
                         const columns = row.split(',');
-                        // Remove quotes from values
                         const dateStr = columns[dateTimeIndex]?.trim().replace(/^"|"$/g, '');
-                        const kwStr = columns[kwIndex]?.trim().replace(/^"|"$/g, '');
+                        const kwhStr = columns[kwhIndex]?.trim().replace(/^"|"$/g, '');
                         
-                        if (!dateStr || !kwStr) continue;
-
-                        const datetime = new Date(dateStr);
-                        const kw = parseFloat(kwStr);
-
-                        if (isNaN(datetime.getTime()) || isNaN(kw)) {
-                            console.warn(`Skipping invalid row ${i + 1}: DateTime=${dateStr}, kW=${kwStr}`);
+                        if (!dateStr || !kwhStr) {
+                            errors.push(`Row ${i + 1}: Missing required values`);
+                            invalidRows++;
                             continue;
                         }
 
-                        data.push({ datetime, kw });
+                        const datetime = new Date(dateStr);
+                        const kwh = parseFloat(kwhStr);
+
+                        if (isNaN(datetime.getTime())) {
+                            errors.push(`Row ${i + 1}: Invalid date format "${dateStr}"`);
+                            invalidRows++;
+                            continue;
+                        }
+
+                        if (isNaN(kwh)) {
+                            errors.push(`Row ${i + 1}: Invalid kWh value "${kwhStr}"`);
+                            invalidRows++;
+                            continue;
+                        }
+
+                        data.push({ datetime, kwh });
                     }
 
                     if (data.length === 0) {
-                        throw new Error('No valid data found in CSV file');
+                        throw new Error('No valid data found in CSV file', { cause: errors });
+                    }
+
+                    if (invalidRows > 0) {
+                        throw new Error(`Found ${invalidRows} invalid rows`, { cause: errors });
                     }
 
                     console.log(`Processed ${data.length} valid readings`);
                     resolve(data);
                 } catch (error) {
+                    error.details = error.cause || [];
                     reject(error);
                 }
             };
@@ -174,7 +192,7 @@ class PanelCalculator {
                     count: 0
                 };
             }
-            hourlyGroups[hour].readings.push(reading.kw);
+            hourlyGroups[hour].readings.push(reading.kwh);
             hourlyGroups[hour].count++;
         });
         return hourlyGroups;
@@ -184,24 +202,22 @@ class PanelCalculator {
         let peakLoad = 0;
         
         Object.values(hourlyData).forEach(hourData => {
-            const { readings, count } = hourData;
+            const { readings } = hourData;
             const hourlyMax = Math.max(...readings);
             
             // Check if all readings in the hour are identical
             const uniqueReadings = new Set(readings).size;
+            const readingCount = readings.length;
             
-            // Apply multipliers based on the data pattern:
-            // - For single readings or "fake" 15-minute data (all values identical), apply 1.3x
-            // - For real 15-minute data (multiple different values), multiply by 4
-            if (uniqueReadings === 1) {
-                // Single reading or "fake" 15-minute data
-                const adjustedMax = hourlyMax * 1.3;
-                peakLoad = Math.max(peakLoad, adjustedMax);
-            } else {
-                // Real 15-minute data
-                const adjustedMax = hourlyMax * 4;
-                peakLoad = Math.max(peakLoad, adjustedMax);
-            }
+            // For 15-minute data (4 readings per hour), multiply by 4
+            const intervalMultiplier = readingCount > 1 ? 4 : 1;
+            
+            // If all readings are identical, also apply the hourly multiplier
+            const hourlyMultiplier = uniqueReadings === 1 ? SINGLE_READING_MULTIPLIER : 1;
+            
+            // Apply both multipliers
+            const adjustedMax = hourlyMax * intervalMultiplier * hourlyMultiplier;
+            peakLoad = Math.max(peakLoad, adjustedMax);
         });
         
         return peakLoad;
@@ -224,12 +240,24 @@ class PanelCalculator {
         console.log('Chart data ready:', data);
     }
 
-    showError(message) {
-        this.fileInfo.textContent = message;
+    showError(message, details = []) {
+        this.fileInfo.innerHTML = `
+            <div class="error-container">
+                <div class="error-summary">${message}</div>
+                ${details.length > 0 ? `
+                    <button class="error-toggle" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                        Show Details (${details.length} issues)
+                    </button>
+                    <div class="error-details hidden">
+                        ${details.map(err => `<div class="error-item">${err}</div>`).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
         this.fileInfo.classList.add('error');
         setTimeout(() => {
             this.fileInfo.classList.remove('error');
-        }, 3000);
+        }, 10000); // Keep error showing longer since there's more to read
     }
 }
 

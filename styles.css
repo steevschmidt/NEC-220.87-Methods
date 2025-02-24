@@ -227,4 +227,51 @@ input[type="number"]:focus {
 
 .error {
     color: var(--error-color);
+}
+
+.error-container {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: #fef2f2;
+    border: 1px solid #fee2e2;
+}
+
+.error-summary {
+    color: var(--error-color);
+    font-weight: 500;
+}
+
+.error-toggle {
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+.error-toggle:hover {
+    background-color: #f9fafb;
+}
+
+.error-details {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.error-item {
+    padding: 0.25rem 0;
+    color: var(--text-secondary);
+}
+
+.error-item:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
 } 
