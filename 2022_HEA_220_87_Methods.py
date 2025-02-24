@@ -11,12 +11,29 @@ https://github.com/HomeElectricationAlliance/NEC-220.87-Methods/blob/main/2022_H
 Key features:
 - Processes CSV files containing DateTime and kW columns
 - Handles both 15-minute and hourly interval data
-- Implements NEC 220.87 safety factors
+- Implements NEC 220.87 safety factors:
+  * 1.25x multiplier for final capacity calculation
+  * 1.3x multiplier for single readings
 - Provides visual representation of load patterns
 - Calculates remaining panel capacity
 
+Interface:
+- Input: CSV file with DateTime and kW columns
+- Panel specifications: size (amps) and voltage
+- Outputs: peak power and remaining capacity in both kW and Amps
+- Interactive visualization of hourly load patterns
+
+Dependencies:
+- pandas: Data processing and analysis
+- numpy: Numerical computations
+- gradio (v3.50.2): Web interface
+- altair: Data visualization
+
 For more information on NEC 220.87, see:
 https://up.codes/s/determining-existing-loads
+
+Note: This implementation is designed to work with both local development
+and AWS Amplify deployment environments.
 """
 
 import pandas as pd
@@ -41,15 +58,13 @@ def get_peak_hourly_load(df: pd.DataFrame) -> float:
     - Applies 1.3x safety factor for single readings per NEC 220.87
     - Automatically detects interval type based on data
 
-    Arguments:
-        df:
-            Input meter values, supplied as a pandas dataframe with the following columns:
-                "DateTime" (the measurement interval's start in format "YYYY-MM-DD HH:MM:00"),
-                "kW" (the measured meter value in kilowatts)
-            The dataframe may contain a mix of hourly and 15-minute interval values.
+    Args:
+        df: Input meter values as pandas DataFrame with columns:
+            "DateTime" (measurement interval start, format "YYYY-MM-DD HH:MM:00")
+            "kW" (measured meter value in kilowatts)
 
     Returns:
-        A float value for the estimated peak hourly load in kW
+        float: Estimated peak hourly load in kW
     """
     df.set_index('DateTime', inplace=True, drop=False)
     df_hourly = df.groupby(pd.Grouper(freq='h', level='DateTime')).agg({'kW': ['max', 'nunique'], 'DateTime': 'nunique'})
@@ -67,41 +82,41 @@ def get_remaining_panel_capacity(peak_hourly_load_kW: float, panel_size_A: int, 
     1. Converts panel capacity from Amps to kW
     2. Subtracts 1.25x the peak load per NEC requirements
     
-    Arguments:
-        peak_hourly_load_kW:
-            Estimated peak hourly load in kilowatts, see get_peak_hourly_load
-        panel_size_A:
-            Current panel size in amperes (amps)
-        panel_voltage_V:
-            Current panel voltage in volts (default: 240V)
+    Args:
+        peak_hourly_load_kW: Estimated peak hourly load in kilowatts
+        panel_size_A: Current panel size in amperes (amps)
+        panel_voltage_V: Current panel voltage in volts (default: 240V)
+
     Returns:
-        A float value for the remaining electric panel capacity in kW, according to NEC-220.87
+        float: Remaining electric panel capacity in kW, according to NEC-220.87
     """
     return panel_size_A * panel_voltage_V / 1000 - 1.25 * peak_hourly_load_kW
 
 def process_inputs(temp_file, panel_size_A, panel_voltage_V):
     """Process input file and parameters to calculate panel capacity and create visualization.
     
-    This function:
-    1. Reads and validates the input CSV file
-    2. Calculates peak load and remaining capacity
-    3. Generates visualization data showing load patterns
-    4. Provides results in both kW and Amp units
-    
-    The visualization shows:
-    - Peak load line (from NEC 220.87 calculation)
-    - Maximum values by hour
-    - Mean values by hour
-    - Minimum values by hour
+    Args:
+        temp_file: CSV file upload containing DateTime and kW columns
+        panel_size_A: Panel capacity in amps
+        panel_voltage_V: Panel voltage in volts
+
+    Returns:
+        tuple: (peak_kW, peak_A, remaining_kW, remaining_A, visualization_data)
+        
+    Raises:
+        gr.Error: If file upload fails or processing encounters an error
     """
     try:
         if temp_file is None:
             raise gr.Error("Please upload a file")
             
+        # Handle file input
         if isinstance(temp_file, str):
             df = pd.read_csv(StringIO(temp_file), parse_dates=["DateTime"])
         else:
-            df = pd.read_csv(temp_file.name, parse_dates=["DateTime"])
+            # For binary file uploads
+            content = temp_file.decode('utf-8')
+            df = pd.read_csv(StringIO(content), parse_dates=["DateTime"])
             
         peak_hourly_load_kW = get_peak_hourly_load(df)
         remaining_panel_capacity_kW = get_remaining_panel_capacity(peak_hourly_load_kW, panel_size_A, panel_voltage_V)
@@ -154,34 +169,40 @@ def launch_gradio_interface():
     """Launch the Gradio interface for the panel capacity calculator.
     
     Creates a web interface with:
-    - File upload for CSV data
+    - File upload for meter data
     - Input fields for panel specifications
-    - Results in both kW and Amp units
-    - Visualization of load patterns
+    - Calculate button to process data
+    - Output display of results
+    - Interactive visualization
+    - Clear button to reset form
     
-    The interface runs locally on port 7861 and includes:
-    - Clear button to reset all fields
-    - Error handling for invalid inputs
-    - Interactive plot of load patterns
+    Handles both local development and AWS Amplify deployment configurations.
     """
     
-    def reset_values():
-        """Reset form to default values"""
-        return [None, 150, 240, None, None, None, None, None]
-    
-    demo = gr.Interface(
-        fn=process_inputs,
-        inputs=[
-            gr.File(label="Upload meter data (CSV format)", file_types=[".csv"]),
-            gr.Number(label="Current panel capacity in amps", value=150),
-            gr.Number(label="Current panel voltage", value=240),
-        ],
-        outputs=[
-            gr.Number(label="Peak power in kW", precision=2),
-            gr.Number(label="Peak power in Amps", precision=1),
-            gr.Number(label="Remaining panel capacity in kW", precision=2),
-            gr.Number(label="Remaining panel capacity in Amps", precision=1),
-            gr.LinePlot(
+    with gr.Blocks(title="Panel Capacity Calculator") as demo:
+        gr.Markdown("# Panel Capacity Calculator")
+        gr.Markdown("Upload a CSV file with DateTime and kW columns to calculate panel capacity.")
+        
+        with gr.Row():
+            file_input = gr.File(
+                label="Upload meter data (CSV format)", 
+                file_types=[".csv"],
+                type="binary"
+            )
+            panel_size = gr.Number(label="Current panel capacity in amps", value=150)
+            panel_voltage = gr.Number(label="Current panel voltage", value=240)
+        
+        # Calculate button moved here, between inputs and outputs
+        submit_btn = gr.Button("Calculate")
+        
+        with gr.Row():
+            peak_power_kw = gr.Number(label="Peak power in kW", precision=2)
+            peak_power_amps = gr.Number(label="Peak power in Amps", precision=1)
+            remaining_capacity_kw = gr.Number(label="Remaining panel capacity in kW", precision=2)
+            remaining_capacity_amps = gr.Number(label="Remaining panel capacity in Amps", precision=1)
+        
+        with gr.Row():
+            plot = gr.LinePlot(
                 label="Hourly loads",
                 x="hour",
                 y="kW_value",
@@ -189,13 +210,25 @@ def launch_gradio_interface():
                 width=400,
                 height=200,
                 interactive=False
-            ),
-        ],
-        title="Panel Capacity Calculator",
-        description="Upload a CSV file with DateTime and kW columns to calculate panel capacity.",
-        allow_flagging="never",
-        clear_fn=reset_values
-    )
+            )
+        
+        # Clear button stays at bottom
+        with gr.Row():
+            clear_btn = gr.ClearButton([file_input, peak_power_kw, peak_power_amps, 
+                                      remaining_capacity_kw, remaining_capacity_amps, plot])
+            
+            # Reset panel values to defaults when cleared
+            clear_btn.click(
+                fn=lambda: [150, 240],
+                outputs=[panel_size, panel_voltage]
+            )
+        
+        submit_btn.click(
+            fn=process_inputs,
+            inputs=[file_input, panel_size, panel_voltage],
+            outputs=[peak_power_kw, peak_power_amps, 
+                    remaining_capacity_kw, remaining_capacity_amps, plot]
+        )
 
     # Check if running in Amplify
     is_amplify = os.getenv('AWS_EXECUTION_ENV') is not None
@@ -203,9 +236,9 @@ def launch_gradio_interface():
     if is_amplify:
         # Amplify configuration
         demo.launch(
-            server_name="0.0.0.0",  # Allow all incoming connections
-            server_port=80,         # Changed to standard HTTP port
-            share=False,            # Don't use sharing feature
+            server_name="0.0.0.0",
+            server_port=80,
+            share=False,
             auth=None,
             ssl_verify=False
         )
@@ -217,4 +250,4 @@ def launch_gradio_interface():
         )
 
 if __name__ == "__main__":
-    launch_gradio_interface() 
+    launch_gradio_interface()
