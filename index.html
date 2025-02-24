@@ -30,6 +30,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <link href="styles.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -95,7 +96,9 @@
                     </div>
                 </div>
             </div>
-            <div id="chartContainer" class="chart-container"></div>
+            <div class="chart-container">
+                <canvas id="chartCanvas"></canvas>
+            </div>
         </div>
     </div>
 

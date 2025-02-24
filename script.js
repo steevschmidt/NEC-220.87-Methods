@@ -13,6 +13,13 @@ class PanelCalculator {
         
         // Bind event listeners
         this.initializeEventListeners();
+
+        // Add at the end of the constructor, after other initializations
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js not loaded');
+        } else {
+            console.log('Chart.js loaded successfully');
+        }
     }
 
     initializeEventListeners() {
@@ -271,8 +278,124 @@ class PanelCalculator {
     }
 
     createChart(data) {
-        // We'll implement this in the next step when we add a charting library
-        console.log('Chart data ready:', data);
+        // Get the canvas context
+        const ctx = document.getElementById('chartCanvas').getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (this.chart) {
+            this.chart.destroy();
+        }
+
+        // Group data by hour
+        const hourlyStats = {};
+        data.forEach(reading => {
+            const hour = reading.datetime.getHours();
+            if (!hourlyStats[hour]) {
+                hourlyStats[hour] = {
+                    values: [],
+                    max: -Infinity,
+                    min: Infinity,
+                    sum: 0,
+                    count: 0
+                };
+            }
+            hourlyStats[hour].values.push(reading.kwh);
+            hourlyStats[hour].max = Math.max(hourlyStats[hour].max, reading.kwh);
+            hourlyStats[hour].min = Math.min(hourlyStats[hour].min, reading.kwh);
+            hourlyStats[hour].sum += reading.kwh;
+            hourlyStats[hour].count++;
+        });
+
+        // Prepare data arrays
+        const hours = Array.from(Array(24).keys());
+        const maxValues = hours.map(hour => 
+            hourlyStats[hour] ? hourlyStats[hour].max : null
+        );
+        const minValues = hours.map(hour => 
+            hourlyStats[hour] ? hourlyStats[hour].min : null
+        );
+        const meanValues = hours.map(hour => 
+            hourlyStats[hour] ? hourlyStats[hour].sum / hourlyStats[hour].count : null
+        );
+
+        // Calculate peak line (constant value across all hours)
+        const peakValue = Math.max(...Object.values(hourlyStats).map(stat => stat.max));
+        const peakValues = Array(24).fill(peakValue);
+
+        // Create chart with all lines
+        this.chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: hours.map(h => `${h}:00`),
+                datasets: [
+                    {
+                        label: 'Peak',
+                        data: peakValues,
+                        borderColor: 'rgba(255, 99, 132, 1)',  // Red
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointStyle: 'line'
+                    },
+                    {
+                        label: 'Max',
+                        data: maxValues,
+                        borderColor: 'rgba(54, 162, 235, 1)',  // Blue
+                        borderWidth: 2,
+                        fill: false,
+                        pointStyle: 'line'
+                    },
+                    {
+                        label: 'Mean',
+                        data: meanValues,
+                        borderColor: 'rgba(75, 192, 192, 1)',  // Green
+                        borderWidth: 2,
+                        fill: false,
+                        pointStyle: 'line'
+                    },
+                    {
+                        label: 'Min',
+                        data: minValues,
+                        borderColor: 'rgba(153, 102, 255, 1)',  // Purple
+                        borderWidth: 2,
+                        fill: false,
+                        pointStyle: 'line'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Hourly Load Pattern'
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'line'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Hour of Day'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'kW'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
     }
 
     showError(message, details = []) {
