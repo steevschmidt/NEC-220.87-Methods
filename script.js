@@ -63,6 +63,11 @@ class PanelCalculator {
         try {
             const file = this.fileInput.files[0];
             const data = await this.parseCSV(file);
+            
+            // Add data analysis
+            const analysis = this.analyzeData(data);
+            this.showDataInfo(analysis.summary, analysis.details);
+            
             const results = this.calculatePanelCapacity(data);
             this.displayResults(results);
             this.createChart(data);
@@ -183,17 +188,21 @@ class PanelCalculator {
     }
 
     groupByHour(data) {
+        // First, create a unique key for each hour that includes the date
         const hourlyGroups = {};
         data.forEach(reading => {
+            const date = reading.datetime.toDateString();
             const hour = reading.datetime.getHours();
-            if (!hourlyGroups[hour]) {
-                hourlyGroups[hour] = {
+            const key = `${date}-${hour}`;
+            
+            if (!hourlyGroups[key]) {
+                hourlyGroups[key] = {
                     readings: [],
                     count: 0
                 };
             }
-            hourlyGroups[hour].readings.push(reading.kwh);
-            hourlyGroups[hour].count++;
+            hourlyGroups[key].readings.push(reading.kwh);
+            hourlyGroups[key].count++;
         });
         return hourlyGroups;
     }
@@ -201,25 +210,51 @@ class PanelCalculator {
     calculatePeakLoad(hourlyData) {
         let peakLoad = 0;
         
-        Object.values(hourlyData).forEach(hourData => {
+        Object.entries(hourlyData).forEach(([hour, hourData]) => {
             const { readings } = hourData;
             const hourlyMax = Math.max(...readings);
-            
-            // Check if all readings in the hour are identical
             const uniqueReadings = new Set(readings).size;
             const readingCount = readings.length;
             
-            // For 15-minute data (4 readings per hour), multiply by 4
-            const intervalMultiplier = readingCount > 1 ? 4 : 1;
+            // Debug logging
+            console.log('Processing hour:', {
+                hour,
+                readings,
+                hourlyMax,
+                uniqueReadings,
+                readingCount
+            });
+
+            let adjustedMax;
             
-            // If all readings are identical, also apply the hourly multiplier
-            const hourlyMultiplier = uniqueReadings === 1 ? SINGLE_READING_MULTIPLIER : 1;
+            if (readingCount === 4) {
+                // 15-minute data (real or fake)
+                if (uniqueReadings === 1) {
+                    // Fake 15-minute data: apply both 4x and 1.3x
+                    adjustedMax = hourlyMax * 4 * SINGLE_READING_MULTIPLIER;
+                    console.log('Fake 15-min:', { 
+                        hour,
+                        hourlyMax, 
+                        step1: hourlyMax * 4,
+                        adjustedMax, 
+                        multiplier: `4 * ${SINGLE_READING_MULTIPLIER} = ${4 * SINGLE_READING_MULTIPLIER}`
+                    });
+                } else {
+                    // Real 15-minute data: apply 4x only
+                    adjustedMax = hourlyMax * 4;
+                    console.log('Real 15-min:', { hour, hourlyMax, adjustedMax, multiplier: 4 });
+                }
+            } else {
+                // Single reading: apply 1.3x only
+                adjustedMax = hourlyMax * SINGLE_READING_MULTIPLIER;
+                console.log('Hourly:', { hour, hourlyMax, adjustedMax, multiplier: SINGLE_READING_MULTIPLIER });
+            }
             
-            // Apply both multipliers
-            const adjustedMax = hourlyMax * intervalMultiplier * hourlyMultiplier;
             peakLoad = Math.max(peakLoad, adjustedMax);
+            console.log(`Current peak load: ${peakLoad}`);
         });
         
+        console.log('Final peak load:', peakLoad);
         return peakLoad;
     }
 
@@ -258,6 +293,97 @@ class PanelCalculator {
         setTimeout(() => {
             this.fileInfo.classList.remove('error');
         }, 10000); // Keep error showing longer since there's more to read
+    }
+
+    analyzeData(data) {
+        // Sort data by datetime
+        const sortedData = [...data].sort((a, b) => a.datetime - b.datetime);
+        
+        // Get date range
+        const firstDate = sortedData[0].datetime;
+        const lastDate = sortedData[sortedData.length - 1].datetime;
+        const daysCovered = Math.round((lastDate - firstDate) / (1000 * 60 * 60 * 24));
+
+        // Find peak values
+        const maxKwh = Math.max(...data.map(d => d.kwh));
+        const peakReadings = data
+            .filter(d => d.kwh === maxKwh)
+            .map(d => `${d.datetime.toLocaleString()}: ${d.kwh.toFixed(3)} kWh`)
+            .join(', ');
+
+        // Group data by hour for pattern analysis
+        const hourlyGroups = {};
+        sortedData.forEach(reading => {
+            const hour = reading.datetime.getHours();
+            const date = reading.datetime.toDateString();
+            const key = `${date}-${hour}`;
+            
+            if (!hourlyGroups[key]) {
+                hourlyGroups[key] = {
+                    readings: [],
+                    count: 0
+                };
+            }
+            hourlyGroups[key].readings.push(reading.kwh);
+            hourlyGroups[key].count++;
+        });
+
+        // Analyze patterns
+        let has15MinData = false;
+        let hasHourlyData = false;
+        let hasFake15MinData = false;
+
+        Object.values(hourlyGroups).forEach(hourData => {
+            const uniqueReadings = new Set(hourData.readings).size;
+            const readingCount = hourData.count;
+
+            if (readingCount === 1) hasHourlyData = true;
+            if (readingCount === 4 && uniqueReadings > 1) has15MinData = true;
+            if (readingCount === 4 && uniqueReadings === 1) hasFake15MinData = true;
+        });
+
+        // Determine data type
+        let dataType = [];
+        if (hasHourlyData) dataType.push("Hourly");
+        if (has15MinData) dataType.push("15-minute");
+        if (hasFake15MinData) dataType.push("Fake 15-minute");
+        
+        return {
+            summary: `Data spans ${daysCovered} days (${firstDate.toLocaleDateString()} to ${lastDate.toLocaleDateString()})`,
+            details: [
+                `First reading: ${firstDate.toLocaleString()}`,
+                `Last reading: ${lastDate.toLocaleString()}`,
+                `Total readings: ${data.length}`,
+                `Data types detected: ${dataType.join(", ") || "Unknown"}`,
+                `Average readings per hour: ${(data.length / Object.keys(hourlyGroups).length).toFixed(1)}`,
+                `Average readings per day: ${(data.length / daysCovered).toFixed(1)}`,
+                `Number of hours with data: ${Object.keys(hourlyGroups).length}`,
+                `Peak reading(s): ${peakReadings}`
+            ]
+        };
+    }
+
+    showDataInfo(summary, details) {
+        const infoHtml = `
+            <div class="info-container">
+                <div class="info-summary">${summary}</div>
+                <button class="info-toggle" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                    Show Analysis Details
+                </button>
+                <div class="info-details hidden">
+                    ${details.map(detail => `<div class="info-item">${detail}</div>`).join('')}
+                </div>
+            </div>
+        `;
+        
+        // Create or update the info display element
+        let infoDisplay = document.getElementById('dataInfo');
+        if (!infoDisplay) {
+            infoDisplay = document.createElement('div');
+            infoDisplay.id = 'dataInfo';
+            this.resultsDiv.insertBefore(infoDisplay, this.resultsDiv.firstChild);
+        }
+        infoDisplay.innerHTML = infoHtml;
     }
 }
 
