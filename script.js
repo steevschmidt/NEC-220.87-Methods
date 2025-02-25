@@ -21,6 +21,9 @@ class PanelCalculator {
 
         // Add sample data handlers
         this.initializeSampleButtons();
+
+        // Add help icon click handler
+        this.initializeHelpIcons();
     }
 
     initializeEventListeners() {
@@ -637,6 +640,17 @@ class PanelCalculator {
             error.details = error.cause || [];
             throw error;
         }
+    }
+
+    initializeHelpIcons() {
+        document.querySelectorAll('.help-icon').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                const article = icon.dataset.article;
+                if (article) {
+                    window.open(article, '_blank');
+                }
+            });
+        });
     }
 }
 

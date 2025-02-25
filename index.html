@@ -72,12 +72,26 @@
             <!-- Panel Specifications -->
             <div class="input-grid">
                 <div class="input-group">
-                    <label for="panelSize">Panel Capacity (Amps)</label>
-                    <input type="number" id="panelSize" value="150">
+                    <label for="panelSize">
+                        Panel Capacity (Amps)
+                        <span class="help-icon" title="Look for the 'CL' number on your electric meter, or check your main breaker size. Click for more info." data-article="https://www.thespruce.com/electrical-service-size-of-my-home-1152752">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </label>
+                    <input type="number" id="panelSize" value="150" title="Enter your panel capacity in Amps. Check your electric meter's CL number or main breaker size.">
                 </div>
                 <div class="input-group">
-                    <label for="panelVoltage">Panel Voltage</label>
-                    <input type="number" id="panelVoltage" value="240">
+                    <label for="panelVoltage">
+                        Panel Voltage
+                        <span class="help-icon" title="Most residential services in the US are 240V. Only change this if you're certain your service is different.">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </label>
+                    <input type="number" id="panelVoltage" value="240" title="Default is 240V - this is correct for most homes in the US">
                 </div>
             </div>
 
