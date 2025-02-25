@@ -20,6 +20,9 @@ class PanelCalculator {
         } else {
             console.log('Chart.js loaded successfully');
         }
+
+        // Add sample data handlers
+        this.initializeSampleButtons();
     }
 
     initializeEventListeners() {
@@ -73,7 +76,7 @@ class PanelCalculator {
             
             // Add data analysis
             const analysis = this.analyzeData(data);
-            this.showDataInfo(analysis.summary, analysis.details);
+            this.showDataInfo(analysis.summary, analysis.details, analysis.warnings);
             
             const results = this.calculatePanelCapacity(data);
             this.displayResults(results);
@@ -479,6 +482,7 @@ class PanelCalculator {
         let has15MinData = false;
         let hasHourlyData = false;
         let hasFake15MinData = false;
+        let warnings = [];
 
         Object.values(hourlyGroups).forEach(hourData => {
             const uniqueReadings = new Set(hourData.readings).size;
@@ -494,6 +498,19 @@ class PanelCalculator {
         if (hasHourlyData) dataType.push("Hourly");
         if (has15MinData) dataType.push("15-minute");
         if (hasFake15MinData) dataType.push("Fake 15-minute");
+
+        // Add warnings based on data type and duration
+        if (has15MinData && !hasHourlyData && !hasFake15MinData) {
+            // Only 15-minute data present
+            if (daysCovered < 30) {
+                warnings.push("Warning! NEC code requires at least 30 days of 15-minute interval data.");
+            }
+        } else if (hasHourlyData || hasFake15MinData) {
+            // Has hourly or fake 15-minute data
+            if (daysCovered < 365) {
+                warnings.push("Warning! Hourly data detected. NEC code requires at least 1 year of hourly interval data.");
+            }
+        }
         
         return {
             summary: `Data spans ${daysCovered} days (${firstDate.toLocaleDateString()} to ${lastDate.toLocaleDateString()})`,
@@ -505,14 +522,21 @@ class PanelCalculator {
                 `Average readings per hour: ${(data.length / Object.keys(hourlyGroups).length).toFixed(1)}`,
                 `Average readings per day: ${(data.length / daysCovered).toFixed(1)}`,
                 `Number of hours with data: ${Object.keys(hourlyGroups).length}`,
-                `Peak reading(s): ${peakReadings}`
-            ]
+                `Peak reading(s): ${peakReadings}`,
+                ...(warnings.length > 0 ? warnings : [])
+            ],
+            warnings
         };
     }
 
-    showDataInfo(summary, details) {
+    showDataInfo(summary, details, warnings = []) {
         const infoHtml = `
             <div class="info-container">
+                ${warnings.map(warning => `
+                    <div class="warning-message">
+                        ${warning}
+                    </div>
+                `).join('')}
                 <div class="info-summary">${summary}</div>
                 <button class="info-toggle" onclick="this.nextElementSibling.classList.toggle('hidden')">
                     Show Analysis Details
@@ -531,6 +555,111 @@ class PanelCalculator {
             this.resultsDiv.insertBefore(infoDisplay, this.resultsDiv.firstChild);
         }
         infoDisplay.innerHTML = infoHtml;
+    }
+
+    initializeSampleButtons() {
+        const sampleButtons = document.querySelectorAll('.sample-button');
+        sampleButtons.forEach(button => {
+            button.addEventListener('click', () => this.loadSampleData(button.dataset.file));
+        });
+    }
+
+    async loadSampleData(filename) {
+        try {
+            const response = await fetch(`https://raw.githubusercontent.com/steevschmidt/NEC-220.87-Methods/8b4a650d5075dca3ef04ba7299e70abd778449ab/test_data/${filename}`);
+            if (!response.ok) throw new Error('Failed to load sample data');
+            
+            const csvContent = await response.text();
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const file = new File([blob], filename, { type: 'text/csv' });
+            
+            // Create a DataTransfer object to update the file input
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            this.fileInput.files = dataTransfer.files;
+            
+            // Update UI
+            this.fileInfo.textContent = `File selected: ${filename}`;
+            this.calculateBtn.disabled = false;
+
+            // Process the data directly using the CSV content
+            const data = await this.parseCSVContent(csvContent);
+            const analysis = this.analyzeData(data);
+            this.showDataInfo(analysis.summary, analysis.details, analysis.warnings);
+            
+            const results = this.calculatePanelCapacity(data);
+            this.displayResults(results);
+            this.createChart(data);
+        } catch (error) {
+            this.showError(`Error loading sample data: ${error.message}`);
+        }
+    }
+
+    // Add new method to parse CSV content directly
+    async parseCSVContent(csvContent) {
+        try {
+            const rows = csvContent.split('\n');
+            const headers = rows[0].split(',');
+            
+            // Validate CSV structure - only accept kWh
+            const dateTimeIndex = headers.findIndex(h => h.trim().toLowerCase() === 'datetime');
+            const kwhIndex = headers.findIndex(h => h.trim().toLowerCase() === 'kwh');
+            
+            if (dateTimeIndex === -1 || kwhIndex === -1) {
+                throw new Error('CSV must contain DateTime and kWh columns');
+            }
+
+            // Parse data rows
+            const data = [];
+            const errors = [];
+            let invalidRows = 0;
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i].trim();
+                if (!row) continue;
+
+                const columns = row.split(',');
+                const dateStr = columns[dateTimeIndex]?.trim().replace(/^"|"$/g, '');
+                const kwhStr = columns[kwhIndex]?.trim().replace(/^"|"$/g, '');
+                
+                if (!dateStr || !kwhStr) {
+                    errors.push(`Row ${i + 1}: Missing required values`);
+                    invalidRows++;
+                    continue;
+                }
+
+                const datetime = new Date(dateStr);
+                const kwh = parseFloat(kwhStr);
+
+                if (isNaN(datetime.getTime())) {
+                    errors.push(`Row ${i + 1}: Invalid date format "${dateStr}"`);
+                    invalidRows++;
+                    continue;
+                }
+
+                if (isNaN(kwh)) {
+                    errors.push(`Row ${i + 1}: Invalid kWh value "${kwhStr}"`);
+                    invalidRows++;
+                    continue;
+                }
+
+                data.push({ datetime, kwh });
+            }
+
+            if (data.length === 0) {
+                throw new Error('No valid data found in CSV file', { cause: errors });
+            }
+
+            if (invalidRows > 0) {
+                throw new Error(`Found ${invalidRows} invalid rows`, { cause: errors });
+            }
+
+            console.log(`Processed ${data.length} valid readings`);
+            return data;
+        } catch (error) {
+            error.details = error.cause || [];
+            throw error;
+        }
     }
 }
 
