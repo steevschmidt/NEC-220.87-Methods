@@ -14,11 +14,9 @@ class PanelCalculator {
         // Bind event listeners
         this.initializeEventListeners();
 
-        // Add at the end of the constructor, after other initializations
+        // Verify Chart.js is loaded
         if (typeof Chart === 'undefined') {
             console.error('Chart.js not loaded');
-        } else {
-            console.log('Chart.js loaded successfully');
         }
 
         // Add sample data handlers
@@ -226,15 +224,6 @@ class PanelCalculator {
             const uniqueReadings = new Set(readings).size;
             const readingCount = readings.length;
             
-            // Debug logging
-            console.log('Processing hour:', {
-                hour,
-                readings,
-                hourlyMax,
-                uniqueReadings,
-                readingCount
-            });
-
             let adjustedMax;
             
             if (readingCount === 4) {
@@ -242,29 +231,18 @@ class PanelCalculator {
                 if (uniqueReadings === 1) {
                     // Fake 15-minute data: apply both 4x and 1.3x
                     adjustedMax = hourlyMax * 4 * SINGLE_READING_MULTIPLIER;
-                    console.log('Fake 15-min:', { 
-                        hour,
-                        hourlyMax, 
-                        step1: hourlyMax * 4,
-                        adjustedMax, 
-                        multiplier: `4 * ${SINGLE_READING_MULTIPLIER} = ${4 * SINGLE_READING_MULTIPLIER}`
-                    });
                 } else {
                     // Real 15-minute data: apply 4x only
                     adjustedMax = hourlyMax * 4;
-                    console.log('Real 15-min:', { hour, hourlyMax, adjustedMax, multiplier: 4 });
                 }
             } else {
                 // Single reading: apply 1.3x only
                 adjustedMax = hourlyMax * SINGLE_READING_MULTIPLIER;
-                console.log('Hourly:', { hour, hourlyMax, adjustedMax, multiplier: SINGLE_READING_MULTIPLIER });
             }
             
             peakLoad = Math.max(peakLoad, adjustedMax);
-            console.log(`Current peak load: ${peakLoad}`);
         });
         
-        console.log('Final peak load:', peakLoad);
         return peakLoad;
     }
 
@@ -654,7 +632,6 @@ class PanelCalculator {
                 throw new Error(`Found ${invalidRows} invalid rows`, { cause: errors });
             }
 
-            console.log(`Processed ${data.length} valid readings`);
             return data;
         } catch (error) {
             error.details = error.cause || [];
