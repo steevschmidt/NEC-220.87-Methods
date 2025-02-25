@@ -9,7 +9,7 @@ Original methodology developed in Jupyter notebook:
 https://github.com/HomeElectricationAlliance/NEC-220.87-Methods/blob/main/2022_HEA_220_87.ipynb
 
 Key features:
-- Processes CSV files containing DateTime and kW columns
+- Processes CSV files containing DateTime and kWh columns
 - Handles both 15-minute and hourly interval data
 - Implements NEC 220.87 safety factors:
   * 1.25x multiplier for final capacity calculation
@@ -18,7 +18,7 @@ Key features:
 - Calculates remaining panel capacity
 
 Interface:
-- Input: CSV file with DateTime and kW columns
+- Input: CSV file with DateTime and kWh columns
 - Panel specifications: size (amps) and voltage
 - Outputs: peak power and remaining capacity in both kW and Amps
 - Interactive visualization of hourly load patterns
@@ -61,19 +61,19 @@ def get_peak_hourly_load(df: pd.DataFrame) -> float:
     Args:
         df: Input meter values as pandas DataFrame with columns:
             "DateTime" (measurement interval start, format "YYYY-MM-DD HH:MM:00")
-            "kW" (measured meter value in kilowatts)
+            "kWh" (measured meter value in kilowatt-hours)
 
     Returns:
         float: Estimated peak hourly load in kW
     """
     df.set_index('DateTime', inplace=True, drop=False)
-    df_hourly = df.groupby(pd.Grouper(freq='h', level='DateTime')).agg({'kW': ['max', 'nunique'], 'DateTime': 'nunique'})
+    df_hourly = df.groupby(pd.Grouper(freq='h', level='DateTime')).agg({'kWh': ['max', 'nunique'], 'DateTime': 'nunique'})
     df_hourly.columns = df_hourly.columns.map('_'.join)
     df_hourly['period'] = np.where(df_hourly['DateTime_nunique'] == 1, 1, 4)
-    df_hourly['kW_max_adj'] = np.where(df_hourly['kW_nunique'] == 1, 
-                                      df_hourly['kW_max'] * df_hourly['period'] * 1.3, 
-                                      df_hourly['kW_max'] * df_hourly['period'])
-    return df_hourly['kW_max_adj'].max()
+    df_hourly['kWh_max_adj'] = np.where(df_hourly['kWh_nunique'] == 1, 
+                                      df_hourly['kWh_max'] * df_hourly['period'] * 1.3, 
+                                      df_hourly['kWh_max'] * df_hourly['period'])
+    return df_hourly['kWh_max_adj'].max()
 
 def get_remaining_panel_capacity(peak_hourly_load_kW: float, panel_size_A: int, panel_voltage_V=240) -> float:
     """Estimates the remaining panel capacity in kW from panel size and peak hourly load.
@@ -96,7 +96,7 @@ def process_inputs(temp_file, panel_size_A, panel_voltage_V):
     """Process input file and parameters to calculate panel capacity and create visualization.
     
     Args:
-        temp_file: CSV file upload containing DateTime and kW columns
+        temp_file: CSV file upload containing DateTime and kWh columns
         panel_size_A: Panel capacity in amps
         panel_voltage_V: Panel voltage in volts
 
@@ -132,7 +132,7 @@ def process_inputs(temp_file, panel_size_A, panel_voltage_V):
         df_hourly_max = df.groupby('hour').max().reset_index(drop=False)
         df_hourly_min = df.groupby('hour').min().reset_index(drop=False)
         df_hourly_peak = df.groupby('hour').first().reset_index(drop=False)
-        df_hourly_peak['kW'] = peak_hourly_load_kW
+        df_hourly_peak['kWh'] = peak_hourly_load_kW
 
         df_hourly = pd.concat([
             df_hourly_peak, 
@@ -148,7 +148,7 @@ def process_inputs(temp_file, panel_size_A, panel_voltage_V):
             ['min'] * len(df_hourly_min)
         )
         
-        df_hourly = df_hourly.melt(id_vars=['hour', 'stat'], var_name='column', value_name='kW_value')
+        df_hourly = df_hourly.melt(id_vars=['hour', 'stat'], var_name='column', value_name='kWh_value')
         df_hourly = df_hourly.drop('column', axis=1)
 
         return (peak_hourly_load_kW, peak_power_A, remaining_panel_capacity_kW, remaining_panel_capacity_A, df_hourly)
@@ -181,7 +181,7 @@ def launch_gradio_interface():
     
     with gr.Blocks(title="Panel Capacity Calculator") as demo:
         gr.Markdown("# Panel Capacity Calculator")
-        gr.Markdown("Upload a CSV file with DateTime and kW columns to calculate panel capacity.")
+        gr.Markdown("Upload a CSV file with DateTime and kWh columns to calculate panel capacity.")
         
         with gr.Row():
             file_input = gr.File(
@@ -205,7 +205,7 @@ def launch_gradio_interface():
             plot = gr.LinePlot(
                 label="Hourly loads",
                 x="hour",
-                y="kW_value",
+                y="kWh_value",
                 color='stat',
                 width=400,
                 height=200,

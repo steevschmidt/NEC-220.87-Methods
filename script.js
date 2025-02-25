@@ -335,7 +335,10 @@ class PanelCalculator {
                         borderWidth: 2,
                         borderDash: [5, 5],
                         fill: false,
-                        pointStyle: 'line'
+                        pointStyle: 'line',
+                        pointRadius: 0,          // Hide individual points
+                        pointHoverRadius: 4,     // Show points on hover
+                        tension: 0.1            // Slightly smooth the lines
                     },
                     {
                         label: 'Max',
@@ -343,7 +346,10 @@ class PanelCalculator {
                         borderColor: 'rgba(54, 162, 235, 1)',  // Blue
                         borderWidth: 2,
                         fill: false,
-                        pointStyle: 'line'
+                        pointStyle: 'line',
+                        pointRadius: 0,          // Hide individual points
+                        pointHoverRadius: 4,     // Show points on hover
+                        tension: 0.1            // Slightly smooth the lines
                     },
                     {
                         label: 'Mean',
@@ -351,7 +357,10 @@ class PanelCalculator {
                         borderColor: 'rgba(75, 192, 192, 1)',  // Green
                         borderWidth: 2,
                         fill: false,
-                        pointStyle: 'line'
+                        pointStyle: 'line',
+                        pointRadius: 0,          // Hide individual points
+                        pointHoverRadius: 4,     // Show points on hover
+                        tension: 0.1            // Slightly smooth the lines
                     },
                     {
                         label: 'Min',
@@ -359,7 +368,10 @@ class PanelCalculator {
                         borderColor: 'rgba(153, 102, 255, 1)',  // Purple
                         borderWidth: 2,
                         fill: false,
-                        pointStyle: 'line'
+                        pointStyle: 'line',
+                        pointRadius: 0,          // Hide individual points
+                        pointHoverRadius: 4,     // Show points on hover
+                        tension: 0.1            // Slightly smooth the lines
                     }
                 ]
             },
@@ -391,8 +403,20 @@ class PanelCalculator {
                             display: true,
                             text: 'kW'
                         },
-                        beginAtZero: true
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(1);  // Consistent decimal places
+                            }
+                        }
                     }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'  // Shows all values at the same x-position
+                },
+                animation: {
+                    duration: 300  // Smoother transitions when data updates
                 }
             }
         });
