@@ -406,4 +406,32 @@ input[type="number"]:focus {
 [title] {
     position: relative;
     cursor: help;
+}
+
+/* Add these styles */
+.span-full {
+    grid-column: 1 / -1;
+}
+
+select {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+    background-color: white;
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.method-info {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    text-align: center;
 } 

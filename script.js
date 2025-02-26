@@ -220,6 +220,7 @@ class PanelCalculator {
 
     calculatePeakLoad(hourlyData) {
         let peakLoad = 0;
+        const calculationMethod = document.getElementById('calculationMethod').value;
         
         Object.entries(hourlyData).forEach(([hour, hourData]) => {
             const { readings } = hourData;
@@ -230,17 +231,44 @@ class PanelCalculator {
             let adjustedMax;
             
             if (readingCount === 4) {
-                // 15-minute data (real or fake)
+                // Always apply 4x for 15-minute data (both real and fake)
+                adjustedMax = hourlyMax * 4;
+                
+                // For fake 15-minute data, apply additional multiplier based on method
                 if (uniqueReadings === 1) {
-                    // Fake 15-minute data: apply both 4x and 1.3x
-                    adjustedMax = hourlyMax * 4 * SINGLE_READING_MULTIPLIER;
-                } else {
-                    // Real 15-minute data: apply 4x only
-                    adjustedMax = hourlyMax * 4;
+                    if (calculationMethod === 'standard') {
+                        // Standard method: apply 1.3x
+                        adjustedMax *= SINGLE_READING_MULTIPLIER;
+                    } else if (calculationMethod === 'lbnl') {
+                        // LBNL method for fake 15-minute data
+                        // First convert to hourly equivalent
+                        const hourlyEquivalent = adjustedMax;
+                        
+                        // Then apply LBNL formula
+                        if (hourlyEquivalent < 7.5) {
+                            adjustedMax = 2.2 + 1.4 * hourlyEquivalent;
+                        } else {
+                            adjustedMax = 5.2 + hourlyEquivalent;
+                        }
+                    }
+                    // NEC method: no additional adjustment
                 }
             } else {
-                // Single reading: apply 1.3x only
-                adjustedMax = hourlyMax * SINGLE_READING_MULTIPLIER;
+                // Single reading (hourly data)
+                if (calculationMethod === 'standard') {
+                    // Standard method: apply 1.3x
+                    adjustedMax = hourlyMax * SINGLE_READING_MULTIPLIER;
+                } else if (calculationMethod === 'lbnl') {
+                    // LBNL method for hourly data
+                    if (hourlyMax < 7.5) {
+                        adjustedMax = 2.2 + 1.4 * hourlyMax;
+                    } else {
+                        adjustedMax = 5.2 + hourlyMax;
+                    }
+                } else {
+                    // NEC method: no adjustment
+                    adjustedMax = hourlyMax;
+                }
             }
             
             peakLoad = Math.max(peakLoad, adjustedMax);
@@ -255,6 +283,13 @@ class PanelCalculator {
         document.getElementById('peakAmps').textContent = results.peakPowerAmps.toFixed(1);
         document.getElementById('remainingKw').textContent = results.remainingCapacityKw.toFixed(2);
         document.getElementById('remainingAmps').textContent = results.remainingCapacityAmps.toFixed(1);
+        
+        // Add calculation method info
+        const methodName = document.getElementById('calculationMethod').options[
+            document.getElementById('calculationMethod').selectedIndex
+        ].text;
+        
+        document.getElementById('calculationMethodInfo').textContent = methodName;
         
         // Show results section with animation
         this.resultsDiv.classList.remove('hidden');

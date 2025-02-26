@@ -93,6 +93,21 @@
                     </label>
                     <input type="number" id="panelVoltage" value="240" title="Default is 240V - this is correct for most homes in the US">
                 </div>
+                <div class="input-group span-full">
+                    <label for="calculationMethod">
+                        Calculation Method
+                        <span class="help-icon" title="Select the method used to calculate peak load from meter readings. NEC is the least conservative (smallest safety margin), HEA is moderately conservative, and LBNL is the most conservative (largest safety margin).">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </label>
+                    <select id="calculationMethod" title="Choose how to calculate peak load from meter readings">
+                        <option value="standard" title="Home Energy Analytics method - applies a 1.3x multiplier to hourly readings. Moderately conservative approach.">HEA (Apply 1.3x to hourly readings)</option>
+                        <option value="nec" title="National Electrical Code method - uses raw values without adjustment for hourly readings. Least conservative approach.">NEC (No adjustment to hourly readings)</option>
+                        <option value="lbnl" title="Lawrence Berkeley National Laboratory method - applies a variable adjustment based on load magnitude. Most conservative approach, providing higher safety margins.">LBNL (Variable adjustment based on load)</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Calculate Button -->
@@ -121,6 +136,9 @@
                         <span id="remainingAmps">-</span> A
                     </div>
                 </div>
+            </div>
+            <div class="method-info">
+                <p>Calculation method: <span id="calculationMethodInfo">-</span></p>
             </div>
             <div class="chart-container">
                 <canvas id="chartCanvas"></canvas>
