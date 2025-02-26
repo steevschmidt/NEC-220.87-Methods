@@ -1,64 +1,96 @@
 # NEC-220.87-Methods
-Tools and algorithms for measuring a home's peak power, useful for building electrification
 
-# Open Source Repository for the calculation of NEC 220.87
+Tools and algorithms for measuring a home's peak power, useful for building electrification.
 
-Goal: We would like an open source repository for a web-based, user-friendly, scalable, documented, secure implementation of the 220.87 algorithm utilizing smart meter data (possibly integrated to UtilityAPI) via a RESTful API which is defined and testable via Swagger, and incorporating test data and a “sandbox” environment for non-invasive testing. It should include a basic UI for testing purposes. Our intent would be to make it good enough for utilities (including CCAs like SVCE) to utilize in order to provide their customers with the key information needed to calculation existing electric panel utilization. If successful, maintenance should be provided by the community of developers who adopt it.
+## Overview
 
-# Description of an NEC 220.87 Toolkit
+This repository provides implementations of the NEC 220.87 method for calculating electrical panel capacity based on historical meter data. It helps homeowners, contractors, utilities, and other stakeholders determine whether existing electrical panels can support increased loads from home electrification projects without requiring costly upgrades.
 
-A set of public resources intended to help homeowners, contractors, software companies, electrification accelerators, utilities, regulators, building departments and others understand and apply National Electric Code 220.87([url](https://up.codes/s/determining-existing-loads/)) for the purpose of avoiding unnecessary electric panel upgrades during home electrification.
+## Repository Contents
 
-## Challenge
-Most Americans use fossil fuels in their homes and while driving. To help with the climate crisis, Americans need to migrate off fossil fuels. Electricity in most US states continues to get cleaner -- meaning electric generation produces less carbon emissions -- so replacing fossil fueled devices with electric equivalents reduces carbon emissions. We call this process "home electrification".
+- **Web Application**: A user-friendly HTML/CSS/JavaScript implementation
+  - Simple file upload interface
+  - Sample data for testing
+  - Multiple calculation methods
+  - Interactive visualization
+  - Mobile-responsive design
 
-The fossil fuels used by homeowners include Natural gas, fuel oil, propane, gasoline and diesel.
+- **Python Implementation**: 
+  - Jupyter notebook with detailed methodology
+  - Standalone Python application with Gradio interface
+  - Comprehensive data processing and visualization
 
-Examples of home electrification 
-1. Replacing a natural gas furnace with a modern electric heat pump. The heat pump is far more efficient, so less energy is used and operating costs usually go down, but the home will use more electricity. 
-2. Replacing a gasoline car with an electric vehicle. This also reduces total energy use, but the owner needs to install an electric vehicle charger in their home and their electric use will go up.
-3. Replacing a natural gas water heater with a heat pump water heater.
-4. Replacing a natural gas clothes dryer with a new efficient electric dryer (such as a condensing ventless electric dryer).
-5. Replacing a natural gas cooktop with an induction cooktop.
+- **Test Data**: 
+  - Various sample files for testing different scenarios
+  - Expected results for validation
+  - Documentation of data formats and use cases
 
-These home electrification steps will necessarily increase the home's electric load, and it is necessary to determine whether or not the existing electric service can support this increased load. This can be done several ways, but if the home has a smart meter the easiest method is defined in [NEC 220.87](https://up.codes/s/determining-existing-loads), and requires an analysis of the home's electric interval data. This analysis is not particularly complicated, but the code is not concise about how it should be done, so the goal of this project is to provide reference implementations that can be approved by various regulators, organizations, municipalities, etc.
+## The Challenge of Home Electrification
 
-HEA has applied NEC 220.87 to a wide variety of homes in California and has provided results [here](https://1drv.ms/f/s!Ag7eOV5ifY5Ch2FNngIFZEzuLLFm?e=igYtZF). This analysis shows that most homes will not need a service upgrade. However, it is critical that this code be applied consistently and correctly to make this determination in a safe and reliable manner. These resources are provided to help assure this is done quickly.
+Most Americans use fossil fuels in their homes and while driving. To help with the climate crisis, Americans need to migrate off fossil fuels. Electricity in most US states continues to get cleaner, so replacing fossil-fueled devices with electric equivalents reduces carbon emissions.
 
-## High level inputs and outputs
- 1. Required input data at start: Electric interval data.
-    - Can be entered various ways: CSV, Greenbutton, UtilityAPI, Arcadia...
-    - Must cover at least 30 days if 15 minute intervals exist
-    - Must cover at least one year if only hourly intervals exist
-    - Must pass validation checks
-      - TBD; possibly follow published CalTRACK validation checks? See [section 2.2](https://docs.caltrack.org/en/latest/methods.html#section-2-data-management).
- 1. Optional input data: Existing electric panel sizes, in Amps. 
-    - We assume all panels are 240 volts (but should allow this to be changed).
-    - We should distinguish between the panel size, the conduit size in the service drop, and the main breaker size. Each implies different actions if exceeded.
-    - We will eventually want to support multiple versions of the NEC standard (e.g. "2020 NFPA 70 National Electrical Code").
- 1. Required Output: Peak usage (in amps and kW and Watts) over some period of time (probably either one year or 30 days).
-    - Time span of smart meter data: From M/D/YY to M/D/YY
-    - Identification of hourly or 15-minute or pseudo 15 minute or some other interval.
-    - Summarize data processed (number of records, min/max values?)
-    - Display algorithm used to produce peak load. E.g. "[peak value in kWh] * [Safety factor] * [Intervals per hour] / [Panel voltage]" 
-    - List the associated NEC code standard (e.g. "2023 NFPA 70 National Electrical Code")
-    - Output summary report showing all of the above
-    - Output the Electric Interval Data in some standard format (CSV?)
+Examples of home electrification include:
+1. Replacing a natural gas furnace with a modern electric heat pump
+2. Replacing a gasoline car with an electric vehicle
+3. Replacing a natural gas water heater with a heat pump water heater
+4. Replacing a natural gas clothes dryer with an electric dryer
+5. Replacing a natural gas cooktop with an induction cooktop
 
-## Implementation Methods
+These changes will increase a home's electric load, making it necessary to determine whether the existing electric service can support this increased load. For homes with smart meters, the easiest method is defined in [NEC 220.87](https://up.codes/s/determining-existing-loads), which requires analysis of the home's electric interval data.
 
-Users would appreciate multiple implementations of the algorithm(s) so they can use it in different ways.
+## Calculation Methods
 
- 1. Jupyter Notebook: A method to easily document the algorithm. Other possible implementations of the core algorithm:
-    - SQL Reference implementations for MySQL, Teradata, etc
-    - R Reference implementation
- 1. Simple tool with rudimentary UI that anyone can use in a browser. CSV upload only. Data stored locally (only).
-    - Javascript/Python? Served via Amplify?
+The repository implements three different calculation methods:
 
-## Regression Test Suites
+1. **HEA (Home Energy Analytics)**: 
+   - Applies a 1.3x multiplier to hourly readings
+   - Moderately conservative approach
 
-It would be useful to have several examples of interval data (KISS; CSV format?), along with the expected output for each, so that new versions of the algorithm can be verified.
+2. **NEC (National Electrical Code)**:
+   - No adjustment to hourly readings
+   - Least conservative approach
 
-See files in test_data folder for examples.
+3. **LBNL (Lawrence Berkeley National Laboratory)**:
+   - Variable adjustment based on load magnitude
+   - Most conservative approach, providing higher safety margins
 
-END
+## How to Use
+
+### Web Application
+1. Open `index.html` in a web browser
+2. Upload a CSV file with DateTime and kWh columns, or use the sample data
+3. Enter your panel specifications
+4. Select a calculation method
+5. View the results and visualization
+
+### Python Application
+1. Navigate to the `python_version` directory
+2. Install dependencies: `pip install -r requirements.txt`
+3. Run the application: `python 2022_HEA_220_87_Methods.py`
+4. Open the provided URL in your web browser
+
+## Input Requirements
+
+- CSV file with DateTime and kWh columns
+- For 15-minute data: at least 30 days of readings
+- For hourly data: at least 1 year of readings
+
+## Output Information
+
+- Peak power in kW and Amps
+- Remaining panel capacity
+- Data analysis summary
+- Interactive visualization of hourly load patterns
+- Calculation method used
+
+## Research and Results
+
+HEA has applied NEC 220.87 to a wide variety of homes in California and has provided results [here](https://1drv.ms/f/s!Ag7eOV5ifY5Ch2FNngIFZEzuLLFm?e=igYtZF). This analysis shows that most homes will not need a service upgrade. However, it is critical that this code be applied consistently and correctly to make this determination in a safe and reliable manner.
+
+## Contributing
+
+Contributions to improve the implementations or add new features are welcome. Please ensure that any changes maintain compatibility with the existing test data and expected results.
+
+## License
+
+[Add your license information here]
