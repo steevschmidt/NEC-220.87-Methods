@@ -2,6 +2,18 @@
 const SINGLE_READING_MULTIPLIER = 1.3;
 const FINAL_CAPACITY_MULTIPLIER = 1.25;
 
+// Add global variables to store form values with correct defaults
+let currentVoltage = '240'; // Default value
+let currentMethod = 'HEA';  // Default value
+let currentPanelSize = '150'; // Default value
+let currentFileName = 'No file selected'; // Default value
+
+// Add global variables to store form values
+let storedPanelSize = currentPanelSize;
+let storedVoltage = currentVoltage;
+let storedMethod = currentMethod;
+let storedFileName = currentFileName;
+
 class PanelCalculator {
     constructor() {
         // DOM elements
@@ -34,6 +46,36 @@ class PanelCalculator {
         
         // Calculate button
         this.calculateBtn.addEventListener('click', () => this.processData());
+
+        // Add event listener for voltage input
+        const voltageInput = document.getElementById('voltage');
+        if (voltageInput) {
+            // Set initial value
+            currentVoltage = voltageInput.value || '240';
+            console.log('Initial voltage:', currentVoltage);
+            
+            // Update when changed
+            voltageInput.addEventListener('input', function() {
+                currentVoltage = this.value;
+                console.log('Voltage updated:', currentVoltage);
+            });
+        }
+        
+        // Add event listeners for method radio buttons
+        const methodInputs = document.getElementsByName('method');
+        for (let i = 0; i < methodInputs.length; i++) {
+            // Set initial value if checked
+            if (methodInputs[i].checked) {
+                currentMethod = methodInputs[i].value;
+                console.log('Initial method:', currentMethod);
+            }
+            
+            // Update when changed
+            methodInputs[i].addEventListener('change', function() {
+                currentMethod = this.value;
+                console.log('Method updated:', currentMethod);
+            });
+        }
     }
 
     handleFileSelect(event) {
@@ -82,6 +124,60 @@ class PanelCalculator {
             const results = this.calculatePanelCapacity(data);
             this.displayResults(results);
             this.createChart(data);
+
+            // Update the current method based on the selected radio button
+            const methodInputs = document.getElementsByName('method');
+            for (let i = 0; i < methodInputs.length; i++) {
+                if (methodInputs[i].checked) {
+                    currentMethod = methodInputs[i].value;
+                    console.log('Method updated in processData:', currentMethod);
+                    break;
+                }
+            }
+
+            // Update the current voltage
+            const voltageInput = document.getElementById('voltage');
+            if (voltageInput) {
+                currentVoltage = voltageInput.value || '240';
+                console.log('Voltage updated in processData:', currentVoltage);
+            }
+
+            // Store the current form values when calculation is performed
+            const panelSizeElement = document.getElementById('panelSize');
+            const voltageElement = document.getElementById('voltage');
+            const fileInput = document.getElementById('fileInput');
+            
+            // Store panel size
+            storedPanelSize = panelSizeElement ? panelSizeElement.value : '150';
+            
+            // Store voltage
+            storedVoltage = voltageElement ? voltageElement.value : '240';
+            
+            // Store method - find the checked radio button
+            const methodRadios = document.querySelectorAll('input[type="radio"][name="method"], input[type="radio"][value="HEA"], input[type="radio"][value="NEC"], input[type="radio"][value="LBNL"]');
+            console.log("Found method radio buttons:", methodRadios.length);
+            
+            for (let i = 0; i < methodRadios.length; i++) {
+                if (methodRadios[i].checked) {
+                    storedMethod = methodRadios[i].value;
+                    console.log("Method changed to:", storedMethod);
+                    break;
+                }
+            }
+            
+            // Store filename
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                storedFileName = fileInput.files[0].name;
+            } else {
+                storedFileName = 'No file selected';
+            }
+            
+            console.log("Stored values during calculation:", {
+                panelSize: storedPanelSize,
+                voltage: storedVoltage,
+                method: storedMethod,
+                fileName: storedFileName
+            });
         } catch (error) {
             this.showError(error.message, error.details);
         }
@@ -692,4 +788,234 @@ class PanelCalculator {
 // Initialize the calculator when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new PanelCalculator();
+    
+    // Add event listener for print button
+    const printBtn = document.getElementById('printResultsBtn');
+    if (printBtn) {
+        printBtn.addEventListener('click', openPrintablePage);
+        console.log('Print button event listener attached');
+    } else {
+        console.error('Print button not found in the DOM');
+    }
+});
+
+// Function to open a printable page with results
+function openPrintablePage() {
+    // Get current values directly from the DOM at the moment of printing
+    const panelSizeElement = document.getElementById('panelSize');
+    const panelSize = panelSizeElement ? panelSizeElement.value : '150';
+    
+    const voltageElement = document.getElementById('panelVoltage');
+    const voltage = voltageElement ? voltageElement.value : '240';
+    
+    const methodElement = document.getElementById('calculationMethod');
+    let method = 'HEA';
+    if (methodElement) {
+        const selectedOption = methodElement.options[methodElement.selectedIndex];
+        method = selectedOption ? selectedOption.text : 'HEA';
+    }
+    
+    const fileInput = document.getElementById('csvFile');
+    let fileName = 'No file selected';
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        fileName = fileInput.files[0].name;
+    }
+    
+    // Get the current results
+    const peakKwElement = document.getElementById('peakKw');
+    const peakAmpsElement = document.getElementById('peakAmps');
+    const remainingKwElement = document.getElementById('remainingKw');
+    const remainingAmpsElement = document.getElementById('remainingAmps');
+    
+    const peakKw = peakKwElement ? peakKwElement.textContent : 'N/A';
+    const peakAmps = peakAmpsElement ? peakAmpsElement.textContent : 'N/A';
+    const remainingKw = remainingKwElement ? remainingKwElement.textContent : 'N/A';
+    const remainingAmps = remainingAmpsElement ? remainingAmpsElement.textContent : 'N/A';
+    
+    // Get data info if available
+    let dataInfoSummary = '';
+    const dataInfoElement = document.getElementById('dataInfo');
+    if (dataInfoElement) {
+        const summaryElement = dataInfoElement.querySelector('.info-summary');
+        if (summaryElement) dataInfoSummary = summaryElement.innerHTML;
+    }
+    
+    // Get the chart as an image
+    let chartImage = '';
+    const chartCanvas = document.getElementById('chartCanvas');
+    if (chartCanvas) {
+        try {
+            chartImage = chartCanvas.toDataURL('image/png');
+        } catch (e) {
+            console.error('Error converting chart to image:', e);
+        }
+    }
+    
+    // Create the printable page HTML with more compact layout
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert("Pop-up blocked. Please allow pop-ups for this site to use the print feature.");
+        return;
+    }
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Panel Capacity Calculator Results</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.4;
+                    color: #333;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 15px;
+                }
+                h1 {
+                    color: #2c3e50;
+                    border-bottom: 2px solid #3498db;
+                    padding-bottom: 8px;
+                    margin-top: 0;
+                    margin-bottom: 15px;
+                    font-size: 20px;
+                }
+                h2 {
+                    color: #2c3e50;
+                    margin-top: 15px;
+                    margin-bottom: 10px;
+                    font-size: 16px;
+                }
+                .compact-layout {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 15px;
+                }
+                .parameters {
+                    flex: 1;
+                    min-width: 200px;
+                    background-color: #f5f5f5;
+                    border: 1px solid #ddd;
+                    border-radius: 5px;
+                    padding: 10px;
+                }
+                .parameters p {
+                    margin: 5px 0;
+                    font-size: 12px;
+                }
+                .results-container {
+                    flex: 1;
+                    min-width: 200px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .result-box {
+                    background-color: #f9f9f9;
+                    border: 1px solid #ddd;
+                    border-radius: 5px;
+                    padding: 10px;
+                }
+                .result-box h3 {
+                    font-size: 12px;
+                    color: #666;
+                    margin: 0 0 5px 0;
+                }
+                .result-value {
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: #3498db;
+                }
+                .chart-container {
+                    width: 100%;
+                    height: 250px;
+                    margin: 10px 0;
+                }
+                .chart-image {
+                    max-width: 100%;
+                    height: auto;
+                    border: 1px solid #ddd;
+                }
+                .data-summary {
+                    font-size: 12px;
+                    margin: 5px 0;
+                    color: #666;
+                }
+                .footer {
+                    margin-top: 15px;
+                    text-align: center;
+                    font-size: 10px;
+                    color: #777;
+                    border-top: 1px solid #ddd;
+                    padding-top: 5px;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                    }
+                    .no-print {
+                        display: none;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Panel Capacity Calculator Results</h1>
+            
+            <div class="compact-layout">
+                <div class="parameters">
+                    <h2>Input Parameters</h2>
+                    <p><strong>Panel Size:</strong> ${panelSize} Amps</p>
+                    <p><strong>Voltage:</strong> ${voltage} Volts</p>
+                    <p><strong>Method:</strong> ${method}</p>
+                    <p><strong>File:</strong> ${fileName}</p>
+                    ${dataInfoSummary ? `<p class="data-summary">${dataInfoSummary}</p>` : ''}
+                </div>
+                
+                <div class="results-container">
+                    <div class="result-box">
+                        <h3>Peak Power</h3>
+                        <div class="result-value">${peakKw} kW / ${peakAmps} A</div>
+                    </div>
+                    <div class="result-box">
+                        <h3>Remaining Capacity</h3>
+                        <div class="result-value">${remainingKw} kW / ${remainingAmps} A</div>
+                    </div>
+                </div>
+            </div>
+            
+            ${chartImage ? `
+            <div class="chart-container">
+                <img class="chart-image" src="${chartImage}" alt="Load Profile Chart">
+            </div>
+            ` : ''}
+            
+            <div class="footer">
+                <p>Generated by Panel Capacity Calculator on ${new Date().toLocaleDateString()}</p>
+                <button class="no-print" onclick="window.print()">Print This Page</button>
+            </div>
+            
+            <script>
+                // Auto-print when loaded
+                window.onload = function() {
+                    setTimeout(function() {
+                        window.print();
+                    }, 500);
+                }
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// Add event listener for the print button
+document.addEventListener('DOMContentLoaded', function() {
+    const printBtn = document.getElementById('printResultsBtn');
+    if (printBtn) {
+        printBtn.addEventListener('click', openPrintablePage);
+        console.log('Print button event listener attached');
+    } else {
+        console.error('Print button not found in the DOM');
+    }
 }); 
