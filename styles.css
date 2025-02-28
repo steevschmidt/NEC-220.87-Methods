@@ -387,19 +387,20 @@ input[type="number"]:focus {
 }
 
 .help-icon {
-    color: var(--text-secondary);
+    color: #4a6da7;
     cursor: help;
     display: inline-flex;
     align-items: center;
+    margin-left: 5px;
 }
 
 .help-icon:hover {
-    color: var(--primary-color);
+    color: #3a5a8f;
 }
 
 .help-icon-svg {
-    width: 1rem;
-    height: 1rem;
+    width: 1.2rem;
+    height: 1.2rem;
 }
 
 /* Style for the tooltip */
@@ -460,4 +461,66 @@ select:focus {
 .negative-value {
     color: #b71c1c !important; /* Dark red color */
     font-weight: bold;
+}
+
+/* Add these styles to your styles.css file */
+.info-message {
+    background-color: #e3f2fd;
+    border: 1px solid #bbdefb;
+    color: #1565c0;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+.file-info.info {
+    color: #1565c0;
+}
+
+/* Add these styles to make tooltips appear immediately */
+[title] {
+    position: relative;
+    cursor: help;
+}
+
+[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    width: max-content;
+    max-width: 300px;
+    white-space: normal;
+    text-align: center;
+}
+
+/* Add a small triangle at the bottom of the tooltip */
+[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Adjust position for help icons */
+.help-icon[title]:hover::after,
+.help-icon[title]:hover::before {
+    bottom: 125%;
 } 

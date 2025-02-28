@@ -613,17 +613,25 @@ class PanelCalculator {
             this.fileInfo.textContent = `File selected: ${filename}`;
             this.calculateBtn.disabled = false;
 
-            // Process the data directly using the CSV content
-            const data = await this.parseCSVContent(csvContent);
-            const analysis = this.analyzeData(data);
-            this.showDataInfo(analysis.summary, analysis.details, analysis.warnings);
-            
-            const results = this.calculatePanelCapacity(data);
-            this.displayResults(results);
-            this.createChart(data);
+            // Remove the automatic data processing section
+            // Instead, just inform the user they can now click Calculate
+            this.showInfo(`Sample data "${filename}" loaded. Click Calculate to process.`);
         } catch (error) {
             this.showError(`Error loading sample data: ${error.message}`);
         }
+    }
+
+    // Add a new method to show informational messages
+    showInfo(message) {
+        this.fileInfo.innerHTML = `
+            <div class="info-container">
+                <div class="info-message">${message}</div>
+            </div>
+        `;
+        this.fileInfo.classList.add('info');
+        setTimeout(() => {
+            this.fileInfo.classList.remove('info');
+        }, 5000);
     }
 
     // Add new method to parse CSV content directly
