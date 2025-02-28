@@ -141,7 +141,7 @@ function openPrintablePage() {
                 .chart-container {
                     width: 100%;
                     height: 300px;
-                    margin: 15px 0;
+                    margin: 15px 0 5px 0;
                 }
                 .chart-image {
                     max-width: 100%;
@@ -172,7 +172,7 @@ function openPrintablePage() {
                     border: 1px solid #e9ecef;
                     border-radius: 5px;
                     padding: 12px;
-                    margin-top: 15px;
+                    margin-top: 5px;
                 }
                 .analysis-details h2 {
                     font-size: 16px;
