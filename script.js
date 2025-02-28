@@ -820,7 +820,7 @@ class PanelCalculator {
             const button = document.querySelector(`.sample-button[data-file="${filename}"]`);
             const format = button ? button.dataset.format : null;
             
-            const response = await fetch(`https://raw.githubusercontent.com/steevschmidt/NEC-220.87-Methods/8b4a650d5075dca3ef04ba7299e70abd778449ab/test_data/${filename}`);
+            const response = await fetch(`https://raw.githubusercontent.com/steevschmidt/NEC-220.87-Methods/refs/heads/main/test_data/${filename}`);
             if (!response.ok) throw new Error('Failed to load sample data');
             
             const csvContent = await response.text();
