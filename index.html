@@ -91,7 +91,11 @@
                             </svg>
                         </span>
                     </label>
-                    <input type="number" id="panelVoltage" value="240" title="Default is 240V - this is correct for most homes in the US">
+                    <select id="panelVoltage" title="Default is 240V - this is correct for most homes in the US">
+                        <option value="240" selected>240 Volts</option>
+                        <option value="120">120 Volts</option>
+                        <option value="208">208 Volts</option>
+                    </select>
                 </div>
                 <div class="input-group span-full">
                     <label for="calculationMethod">
@@ -129,12 +133,20 @@
                     </div>
                 </div>
                 <div class="result-card">
-                    <h3>Remaining Capacity</h3>
+                    <h3>
+                        Remaining Capacity
+                        <span class="help-icon" title="This is the remaining capacity after applying the NEC safety factor (1.25x) to the measured peak power. This safety margin is required by the National Electrical Code.">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </h3>
                     <div class="result-value">
                         <span id="remainingKw">-</span> kW
                         <span class="separator">|</span>
                         <span id="remainingAmps">-</span> A
                     </div>
+                    <div class="info-note">*Includes NEC safety factor (1.25x)</div>
                 </div>
             </div>
             <div class="method-info">

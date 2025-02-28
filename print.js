@@ -148,6 +148,12 @@ function openPrintablePage() {
                     border-top: 1px solid #ddd;
                     padding-top: 5px;
                 }
+                .info-note {
+                    font-size: 10px;
+                    color: #666;
+                    font-style: italic;
+                    margin-top: 3px;
+                }
                 @media print {
                     body {
                         padding: 0;
@@ -155,6 +161,18 @@ function openPrintablePage() {
                     .no-print {
                         display: none;
                     }
+                }
+                .result-card h3 .help-icon {
+                    display: inline-flex;
+                    margin-left: 5px;
+                    vertical-align: middle;
+                    cursor: help;
+                }
+                .result-card .info-note {
+                    font-size: 12px;
+                    color: #666;
+                    font-style: italic;
+                    margin-top: 5px;
                 }
             </style>
         </head>
@@ -179,6 +197,7 @@ function openPrintablePage() {
                     <div class="result-box">
                         <h3>Remaining Capacity</h3>
                         <div class="result-value">${remainingKw} kW / ${remainingAmps} A</div>
+                        <div class="info-note">*Includes NEC safety factor (1.25x) applied to peak power</div>
                     </div>
                 </div>
             </div>
