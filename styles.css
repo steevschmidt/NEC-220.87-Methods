@@ -523,4 +523,47 @@ select:focus {
 .help-icon[title]:hover::after,
 .help-icon[title]:hover::before {
     bottom: 125%;
+}
+
+/* Add these styles to your CSS file */
+.app-footer {
+    margin-top: 30px;
+    padding: 15px 0;
+    border-top: 1px solid #e9ecef;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.report-issue-link {
+    color: #6c757d;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.2s;
+}
+
+.report-issue-link:hover {
+    color: #0d6efd;
+    text-decoration: underline;
+}
+
+.version-info {
+    margin-left: 15px;
+    color: #adb5bd;
+    font-size: 0.8rem;
+}
+
+/* Make sure the footer stays at the bottom */
+@media (min-height: 800px) {
+    .app-footer {
+        position: relative;
+        margin-top: auto;
+    }
+    
+    body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
 } 

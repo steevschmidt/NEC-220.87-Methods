@@ -9,13 +9,14 @@ This repository provides implementations of the NEC 220.87 method for calculatin
 ## Repository Contents
 
 - **Web Application**: A user-friendly HTML/CSS/JavaScript implementation
-  - Simple file upload interface
+  - Simple file upload interface supports a basic 2 column format and PG&E's GreenButton CSV download format
   - Sample data for testing
   - Multiple calculation methods
   - Interactive visualization
   - Mobile-responsive design
   - Printable detailed reports
   - Visual indicators for capacity issues
+  - Error checking and bug reporting
 
 - **Python Implementation**: 
   - Jupyter notebook with detailed methodology

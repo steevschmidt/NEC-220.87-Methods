@@ -2,6 +2,31 @@
 const SINGLE_READING_MULTIPLIER = 1.3;
 const FINAL_CAPACITY_MULTIPLIER = 1.25;
 
+function checkBrowserCompatibility() {
+    const incompatibilities = [];
+    
+    // Check for FileReader API
+    if (!window.FileReader) {
+        incompatibilities.push('FileReader API is not supported');
+    }
+    
+    // Check for Fetch API
+    if (!window.fetch) {
+        incompatibilities.push('Fetch API is not supported');
+    }
+    
+    // Check for modern JS features
+    try {
+        eval('async () => {}');
+    } catch (e) {
+        incompatibilities.push('Modern JavaScript features are not supported');
+    }
+    
+    if (incompatibilities.length > 0) {
+        alert('Your browser may not fully support this application. Please use a modern browser like Chrome, Firefox, or Edge.\n\nIssues detected:\n' + incompatibilities.join('\n'));
+    }
+}
+
 class PanelCalculator {
     constructor() {
         // DOM elements
@@ -24,6 +49,9 @@ class PanelCalculator {
 
         // Add help icon click handler
         this.initializeHelpIcons();
+
+        // Initialize the report issue link
+        this.initializeReportIssueLink();
     }
 
     initializeEventListeners() {
@@ -73,10 +101,16 @@ class PanelCalculator {
     async processData() {
         try {
             const file = this.fileInput.files[0];
+            
+            // Read file content to detect format
+            const fileContent = await this.readFileContent(file);
+            const fileFormat = this.detectFileFormat(fileContent);
+            
+            // Parse data based on detected format
             const data = await this.parseCSV(file);
             
-            // Add data analysis
-            const analysis = this.analyzeData(data);
+            // Add data analysis with format information
+            const analysis = this.analyzeData(data, fileFormat);
             this.showDataInfo(analysis.summary, analysis.details, analysis.warnings);
             
             const results = this.calculatePanelCapacity(data);
@@ -89,67 +123,33 @@ class PanelCalculator {
 
     async parseCSV(file) {
         return new Promise((resolve, reject) => {
+            if (!file) {
+                reject(new Error('No file selected. Please upload a CSV file.'));
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) { // 10MB limit
+                reject(new Error('File is too large. Maximum file size is 5MB.'));
+                return;
+            }
+            
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = async (event) => {
                 try {
-                    const csvData = event.target.result;
-                    const rows = csvData.split('\n');
-                    const headers = rows[0].split(',');
+                    const csvContent = event.target.result;
                     
-                    // Validate CSV structure - only accept kWh
-                    const dateTimeIndex = headers.findIndex(h => h.trim().toLowerCase() === 'datetime');
-                    const kwhIndex = headers.findIndex(h => h.trim().toLowerCase() === 'kwh');
+                    // Detect file format
+                    const format = this.detectFileFormat(csvContent);
                     
-                    if (dateTimeIndex === -1 || kwhIndex === -1) {
-                        throw new Error('CSV must contain DateTime and kWh columns');
+                    // Parse based on detected format
+                    let data;
+                    if (format === 'standard') {
+                        data = await this.parseStandardCSV(csvContent);
+                    } else if (format === 'pge') {
+                        data = await this.parsePGECSV(csvContent);
                     }
-
-                    // Parse data rows
-                    const data = [];
-                    const errors = [];
-                    let invalidRows = 0;
-
-                    for (let i = 1; i < rows.length; i++) {
-                        const row = rows[i].trim();
-                        if (!row) continue;
-
-                        const columns = row.split(',');
-                        const dateStr = columns[dateTimeIndex]?.trim().replace(/^"|"$/g, '');
-                        const kwhStr = columns[kwhIndex]?.trim().replace(/^"|"$/g, '');
-                        
-                        if (!dateStr || !kwhStr) {
-                            errors.push(`Row ${i + 1}: Missing required values`);
-                            invalidRows++;
-                            continue;
-                        }
-
-                        const datetime = new Date(dateStr);
-                        const kwh = parseFloat(kwhStr);
-
-                        if (isNaN(datetime.getTime())) {
-                            errors.push(`Row ${i + 1}: Invalid date format "${dateStr}"`);
-                            invalidRows++;
-                            continue;
-                        }
-
-                        if (isNaN(kwh)) {
-                            errors.push(`Row ${i + 1}: Invalid kWh value "${kwhStr}"`);
-                            invalidRows++;
-                            continue;
-                        }
-
-                        data.push({ datetime, kwh });
-                    }
-
-                    if (data.length === 0) {
-                        throw new Error('No valid data found in CSV file', { cause: errors });
-                    }
-
-                    if (invalidRows > 0) {
-                        throw new Error(`Found ${invalidRows} invalid rows`, { cause: errors });
-                    }
-
-                    console.log(`Processed ${data.length} valid readings`);
+                    
+                    console.log(`Processed ${data.length} valid readings from ${format} format`);
                     resolve(data);
                 } catch (error) {
                     error.details = error.cause || [];
@@ -159,6 +159,201 @@ class PanelCalculator {
             reader.onerror = () => reject(new Error('Error reading file'));
             reader.readAsText(file);
         });
+    }
+
+    async parseStandardCSV(csvContent) {
+        const rows = csvContent.split('\n');
+        const headers = rows[0].split(',');
+        
+        // Validate CSV structure - only accept kWh
+        const dateTimeIndex = headers.findIndex(h => h.trim().toLowerCase() === 'datetime');
+        const kwhIndex = headers.findIndex(h => h.trim().toLowerCase() === 'kwh');
+        
+        if (dateTimeIndex === -1 || kwhIndex === -1) {
+            throw new Error('CSV must contain DateTime and kWh columns');
+        }
+
+        // Parse data rows
+        const data = [];
+        const errors = [];
+        let invalidRows = 0;
+
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i].trim();
+            if (!row) continue;
+
+            const columns = row.split(',');
+            const dateStr = columns[dateTimeIndex]?.trim().replace(/^"|"$/g, '');
+            const kwhStr = columns[kwhIndex]?.trim().replace(/^"|"$/g, '');
+            
+            if (!dateStr || !kwhStr) {
+                errors.push(`Row ${i + 1}: Missing required values`);
+                invalidRows++;
+                continue;
+            }
+
+            const datetime = new Date(dateStr);
+            const kwh = parseFloat(kwhStr);
+
+            if (isNaN(datetime.getTime())) {
+                errors.push(`Row ${i + 1}: Invalid date format "${dateStr}"`);
+                invalidRows++;
+                continue;
+            }
+
+            if (isNaN(kwh)) {
+                errors.push(`Row ${i + 1}: Invalid kWh value "${kwhStr}"`);
+                invalidRows++;
+                continue;
+            }
+
+            data.push({ datetime, kwh });
+        }
+
+        if (data.length === 0) {
+            throw new Error('No valid data found in CSV file', { cause: errors });
+        }
+
+        if (invalidRows > 0) {
+            throw new Error(`Found ${invalidRows} invalid rows`, { cause: errors });
+        }
+
+        return data;
+    }
+
+    async parsePGECSV(csvContent) {
+        const rows = csvContent.split('\n');
+        const data = [];
+        const errors = [];
+        let invalidRows = 0;
+        
+        // Find the header row (contains TYPE, DATE, START TIME, etc.)
+        let headerRowIndex = -1;
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i].includes('TYPE,DATE,START TIME,END TIME,USAGE (kWh)')) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+        
+        if (headerRowIndex === -1) {
+            throw new Error('Invalid PG&E file format. Could not find header row.');
+        }
+        
+        const headers = rows[headerRowIndex].split(',');
+        const dateIndex = headers.findIndex(h => h.trim() === 'DATE');
+        const startTimeIndex = headers.findIndex(h => h.trim() === 'START TIME');
+        const usageIndex = headers.findIndex(h => h.trim() === 'USAGE (kWh)');
+        
+        if (dateIndex === -1 || startTimeIndex === -1 || usageIndex === -1) {
+            throw new Error('Invalid PG&E file format. Missing required columns.');
+        }
+        
+        // Parse data rows (skip header row)
+        for (let i = headerRowIndex + 1; i < rows.length; i++) {
+            const row = rows[i].trim();
+            if (!row || !row.startsWith('Electric usage')) continue;
+            
+            const columns = this.parseCSVRow(row); // Handle quoted values properly
+            const dateStr = columns[dateIndex]?.trim();
+            const timeStr = columns[startTimeIndex]?.trim();
+            const kwhStr = columns[usageIndex]?.trim();
+            
+            if (!dateStr || !timeStr || !kwhStr) {
+                errors.push(`Row ${i + 1}: Missing required values`);
+                invalidRows++;
+                continue;
+            }
+            
+            // Parse date and time (MM/DD/YY format)
+            try {
+                // Combine date and time
+                const dateTimeStr = `${dateStr} ${timeStr}`;
+                const datetime = this.parsePGEDateTime(dateTimeStr);
+                const kwh = parseFloat(kwhStr);
+                
+                if (isNaN(kwh)) {
+                    errors.push(`Row ${i + 1}: Invalid kWh value "${kwhStr}"`);
+                    invalidRows++;
+                    continue;
+                }
+                
+                data.push({ datetime, kwh });
+            } catch (error) {
+                errors.push(`Row ${i + 1}: ${error.message}`);
+                invalidRows++;
+            }
+        }
+        
+        if (data.length === 0) {
+            throw new Error('No valid data found in PG&E file', { cause: errors });
+        }
+        
+        if (invalidRows > 0) {
+            throw new Error(`Found ${invalidRows} invalid rows`, { cause: errors });
+        }
+        
+        return data;
+    }
+
+    parsePGEDateTime(dateTimeStr) {
+        // PG&E format: MM/DD/YY HH:MM
+        const parts = dateTimeStr.split(' ');
+        if (parts.length !== 2) {
+            throw new Error(`Invalid date/time format: ${dateTimeStr}`);
+        }
+        
+        const dateParts = parts[0].split('/');
+        if (dateParts.length !== 3) {
+            throw new Error(`Invalid date format: ${parts[0]}`);
+        }
+        
+        let year = parseInt(dateParts[2]);
+        // Handle 2-digit year (assume 20xx for years less than 50, 19xx otherwise)
+        if (year < 100) {
+            year = year < 50 ? 2000 + year : 1900 + year;
+        }
+        
+        const month = parseInt(dateParts[0]) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(dateParts[1]);
+        
+        const timeParts = parts[1].split(':');
+        if (timeParts.length !== 2) {
+            throw new Error(`Invalid time format: ${parts[1]}`);
+        }
+        
+        const hour = parseInt(timeParts[0]);
+        const minute = parseInt(timeParts[1]);
+        
+        const datetime = new Date(year, month, day, hour, minute);
+        if (isNaN(datetime.getTime())) {
+            throw new Error(`Could not parse date/time: ${dateTimeStr}`);
+        }
+        
+        return datetime;
+    }
+
+    parseCSVRow(row) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < row.length; i++) {
+            const char = row[i];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current);
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        
+        // Add the last field
+        result.push(current);
+        return result;
     }
 
     calculatePanelCapacity(data) {
@@ -304,6 +499,13 @@ class PanelCalculator {
         // Show results section with animation
         this.resultsDiv.classList.remove('hidden');
         this.resultsDiv.classList.add('fade-in');
+
+        // Add export button to results section
+        const exportBtn = document.getElementById('exportResultsBtn');
+        if (exportBtn) {
+            exportBtn.classList.remove('hidden');
+            exportBtn.addEventListener('click', () => this.exportResults());
+        }
     }
 
     createChart(data) {
@@ -471,7 +673,7 @@ class PanelCalculator {
         }, 10000); // Keep error showing longer since there's more to read
     }
 
-    analyzeData(data) {
+    analyzeData(data, fileFormat = 'standard') {
         // Sort data by datetime
         const sortedData = [...data].sort((a, b) => a.datetime - b.datetime);
         
@@ -542,9 +744,26 @@ class PanelCalculator {
         const methodElement = document.getElementById('calculationMethod');
         const methodName = methodElement.options[methodElement.selectedIndex].text;
         
+        // Add warnings for suspicious data patterns
+        if (maxKwh > 50) {
+            warnings.push("Warning! Unusually high kWh values detected. Please verify your data is in kWh (not Wh).");
+        }
+
+        // Check for large gaps in data
+        const sortedTimes = sortedData.map(d => d.datetime.getTime());
+        const timeDiffs = [];
+        for (let i = 1; i < sortedTimes.length; i++) {
+            timeDiffs.push(sortedTimes[i] - sortedTimes[i-1]);
+        }
+        const maxGapHours = Math.max(...timeDiffs) / (1000 * 60 * 60);
+        if (maxGapHours > 24) {
+            warnings.push(`Warning! Data contains gaps. Largest gap is ${maxGapHours.toFixed(1)} hours.`);
+        }
+        
         return {
             summary: `Data spans ${daysCovered} days (${firstDate.toLocaleDateString()} to ${lastDate.toLocaleDateString()})`,
             details: [
+                `File format: ${fileFormat === 'pge' ? 'PG&E Energy Usage Export' : 'Standard CSV'}`,
                 `First reading: ${firstDate.toLocaleString()}`,
                 `Last reading: ${lastDate.toLocaleString()}`,
                 `Total readings: ${data.length}`,
@@ -597,6 +816,10 @@ class PanelCalculator {
 
     async loadSampleData(filename) {
         try {
+            // Get format from button data attribute if available
+            const button = document.querySelector(`.sample-button[data-file="${filename}"]`);
+            const format = button ? button.dataset.format : null;
+            
             const response = await fetch(`https://raw.githubusercontent.com/steevschmidt/NEC-220.87-Methods/8b4a650d5075dca3ef04ba7299e70abd778449ab/test_data/${filename}`);
             if (!response.ok) throw new Error('Failed to load sample data');
             
@@ -613,9 +836,9 @@ class PanelCalculator {
             this.fileInfo.textContent = `File selected: ${filename}`;
             this.calculateBtn.disabled = false;
 
-            // Remove the automatic data processing section
-            // Instead, just inform the user they can now click Calculate
-            this.showInfo(`Sample data "${filename}" loaded. Click Calculate to process.`);
+            // Add format info to the message
+            const formatName = format === 'pge' ? 'PG&E' : 'standard';
+            this.showInfo(`Sample data "${filename}" (${formatName} format) loaded. Click Calculate to process.`);
         } catch (error) {
             this.showError(`Error loading sample data: ${error.message}`);
         }
@@ -710,10 +933,159 @@ class PanelCalculator {
             });
         });
     }
+
+    detectFileFormat(csvContent) {
+        // Check for PG&E format (has header with Name, Address, etc.)
+        if (csvContent.includes('Name,') && csvContent.includes('Address,') && 
+            csvContent.includes('Account Number,')) {
+            return 'pge';
+        }
+        
+        // Check for standard format (has DateTime and kWh columns)
+        const firstLine = csvContent.split('\n')[0].toLowerCase();
+        if (firstLine.includes('datetime') && firstLine.includes('kwh')) {
+            return 'standard';
+        }
+        
+        // Unknown format
+        throw new Error('Unsupported file format. Please upload a valid CSV file with either DateTime and kWh columns, or a PG&E energy usage export.');
+    }
+
+    // Helper method to read file content
+    readFileContent(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target.result);
+            reader.onerror = () => reject(new Error('Error reading file'));
+            reader.readAsText(file);
+        });
+    }
+
+    async importFromAPI(provider, credentials) {
+        try {
+            this.showInfo(`Connecting to ${provider} API...`);
+            
+            // This would be implemented for each provider
+            let data;
+            if (provider === 'utilityapi') {
+                data = await this.importFromUtilityAPI(credentials);
+            } else if (provider === 'hea') {
+                data = await this.importFromHEA(credentials);
+            } else {
+                throw new Error(`Unsupported API provider: ${provider}`);
+            }
+            
+            // Process the data as usual
+            const analysis = this.analyzeData(data, provider);
+            this.showDataInfo(analysis.summary, analysis.details, analysis.warnings);
+            
+            const results = this.calculatePanelCapacity(data);
+            this.displayResults(results);
+            this.createChart(data);
+            
+            return data;
+        } catch (error) {
+            this.showError(`API Import Error: ${error.message}`);
+            throw error;
+        }
+    }
+
+    // Placeholder methods for future API integrations
+    async importFromUtilityAPI(credentials) {
+        // This would be implemented when ready
+        throw new Error('UtilityAPI integration not yet implemented');
+    }
+
+    async importFromHEA(credentials) {
+        // This would be implemented when ready
+        throw new Error('HEA API integration not yet implemented');
+    }
+
+    exportResults() {
+        try {
+            // Get current results
+            const peakKw = document.getElementById('peakKw').textContent;
+            const peakAmps = document.getElementById('peakAmps').textContent;
+            const remainingKw = document.getElementById('remainingKw').textContent;
+            const remainingAmps = document.getElementById('remainingAmps').textContent;
+            
+            // Get input parameters
+            const panelSize = document.getElementById('panelSize').value;
+            const voltage = document.getElementById('panelVoltage').value;
+            const methodElement = document.getElementById('calculationMethod');
+            const method = methodElement.options[methodElement.selectedIndex].text;
+            
+            // Create CSV content
+            const csvContent = [
+                'Parameter,Value',
+                `Panel Size,${panelSize} A`,
+                `Voltage,${voltage} V`,
+                `Calculation Method,${method}`,
+                `Peak Power,${peakKw} kW`,
+                `Peak Current,${peakAmps} A`,
+                `Remaining Capacity,${remainingKw} kW`,
+                `Remaining Current,${remainingAmps} A`,
+                `Date Generated,${new Date().toLocaleString()}`
+            ].join('\n');
+            
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'panel_capacity_results.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            this.showInfo('Results exported successfully');
+        } catch (error) {
+            this.showError(`Error exporting results: ${error.message}`);
+        }
+    }
+
+    initializeReportIssueLink() {
+        const reportLink = document.querySelector('.report-issue-link');
+        if (reportLink) {
+            reportLink.addEventListener('click', (e) => {
+                // Get current app state
+                const panelSize = document.getElementById('panelSize').value || 'Not set';
+                const voltage = document.getElementById('panelVoltage').value || 'Not set';
+                const methodElement = document.getElementById('calculationMethod');
+                const method = methodElement ? methodElement.options[methodElement.selectedIndex].text : 'Not set';
+                
+                // Get browser info
+                const browserInfo = `${navigator.userAgent}`;
+                
+                // Create email body
+                const body = `
+Issue Description:
+[Please describe the issue you encountered]
+
+System Information:
+- Browser: ${browserInfo}
+- Panel Size: ${panelSize} A
+- Voltage: ${voltage} V
+- Calculation Method: ${method}
+- App Version: v1.0.0
+- Date: ${new Date().toISOString()}
+
+Steps to Reproduce:
+[Please describe the steps you took when the issue occurred]
+                `.trim();
+                
+                // Update the mailto link
+                const mailtoUrl = `mailto:steve@hea.com?subject=Panel%20Calculator%20Issue%20Report&body=${encodeURIComponent(body)}`;
+                reportLink.href = mailtoUrl;
+            });
+        }
+    }
 }
 
 // Initialize the calculator when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    checkBrowserCompatibility();
     new PanelCalculator();
     
     // Add event listener for print button

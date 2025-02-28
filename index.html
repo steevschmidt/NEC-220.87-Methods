@@ -37,8 +37,9 @@
         <!-- Header -->
         <header>
             <h1>Panel Capacity Calculator</h1>
-            <p>Calculate your available electrical panel capacity based on historical meter data</p>
-            <p>Developed under this <a href="https://www.energizeinnovation.fund/projects/decision-tool-electrify-homes-limited-electrical-panel-capacity#tab-overview" target="_blank">Grant from the California Energy Commission</a></p>
+            <p>Calculate your available electrical panel capacity based on historical meter data.</p>
+            <p>An implementation of <a href="https://up.codes/s/determining-existing-loads" target="_blank">National Electrical Code 220.87</a> for homes with smart meter data.</p>
+            <p>Developed under this <a href="https://www.energizeinnovation.fund/projects/decision-tool-electrify-homes-limited-electrical-panel-capacity#tab-overview" target="_blank">Grant from the California Energy Commission</a>.</p>
         </header>
 
         <!-- Main Form -->
@@ -46,15 +47,15 @@
             <!-- File Upload -->
             <div class="upload-container">
                 <input type="file" id="csvFile" accept=".csv" class="hidden">
-                <label for="csvFile" class="upload-area">
+                <label for="csvFile" class="upload-area" aria-describedby="uploadHint">
                     <div class="upload-content">
                         <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                         </svg>
                         <p>Drop your CSV file here or click to upload</p>
-                        <p class="upload-hint">A simple CSV file with two columns named DateTime and kWh</p>
                     </div>
                 </label>
+                <p id="uploadHint" class="upload-hint">Upload a CSV file with energy usage data. We support standard format (DateTime and kWh columns) or PG&E energy usage exports.</p>
                 <div id="fileInfo" class="file-info"></div>
             </div>
 
@@ -63,8 +64,9 @@
                 <p class="sample-divider">or</p>
                 <p class="sample-header">Try running the calculator using one of these sample files:</p>
                 <div class="sample-buttons">
-                    <button class="sample-button" data-file="test4_15min_1mo.csv">1 Month of 15-min Data</button>
-                    <button class="sample-button" data-file="test2_hourly_1mo.csv">1 Month of Hourly Data</button>
+                    <button class="sample-button" data-file="test4_15min_1mo.csv" data-format="standard">1 Month of 15-min Data</button>
+                    <button class="sample-button" data-file="test2_hourly_1mo.csv" data-format="standard">1 Month of Hourly Data</button>
+                    <button class="sample-button" data-file="PGE_test1.csv" data-format="pge">PG&E Sample Data</button>
                     <button class="sample-button" data-file="test3_fake15_1mo.csv">1 Month of Pseudo 15-min Data</button>
                     <button class="sample-button" data-file="test5_15min_1yr.csv">1 Year of 15-min Data</button>
                 </div>
@@ -136,7 +138,10 @@
                 <div class="result-card">
                     <h3>
                         Remaining Capacity
-                        <span class="help-icon" title="This is the remaining capacity after applying the NEC safety factor (1.25x) to the measured peak power. This safety margin is required by the National Electrical Code.">
+                        <span class="help-icon" 
+                              title="This is the remaining capacity after applying the NEC safety factor (1.25x) to the measured peak power." 
+                              aria-label="Help: Remaining Capacity" 
+                              role="tooltip">
                             <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
                             </svg>
@@ -158,10 +163,28 @@
             <div class="print-button-container">
                 <button id="printResultsBtn" class="btn">Print Results</button>
             </div>
+
+            <!-- Add this after the print button -->
+            <button id="exportResultsBtn" class="btn hidden">Export Results</button>
         </div>
     </div>
 
     <script src="script.js"></script>
     <script src="print.js"></script>
+
+    <!-- Add this at the bottom of your page, just before the closing </body> tag -->
+    <footer class="app-footer">
+        <div class="container">
+            <p>
+                <a href="mailto:steve@hea.com?subject=Panel%20Calculator%20Issue%20Report" class="report-issue-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bug" viewBox="0 0 16 16">
+                        <path d="M4.355.522a.5.5 0 0 1 .623.333l.291.956A4.979 4.979 0 0 1 8 1c1.007 0 1.946.298 2.731.811l.29-.956a.5.5 0 1 1 .957.29l-.41 1.352A4.985 4.985 0 0 1 13 6h.5a.5.5 0 0 0 .5-.5V5a.5.5 0 0 1 1 0v.5A1.5 1.5 0 0 1 13.5 7H13v1h1.5a.5.5 0 0 1 0 1H13v1h.5a1.5 1.5 0 0 1 1.5 1.5v.5a.5.5 0 1 1-1 0v-.5a.5.5 0 0 0-.5-.5H13a5 5 0 0 1-10 0h-.5a.5.5 0 0 0-.5.5v.5a.5.5 0 1 1-1 0v-.5A1.5 1.5 0 0 1 2.5 10H3V9H1.5a.5.5 0 0 1 0-1H3V7h-.5A1.5 1.5 0 0 1 1 5.5V5a.5.5 0 0 1 1 0v.5a.5.5 0 0 0 .5.5H3c0-1.364.547-2.601 1.432-3.503l-.41-1.352a.5.5 0 0 1 .333-.623zM4 7v4a4 4 0 0 0 3.5 3.97V7H4zm4.5 0v7.97A4 4 0 0 0 12 11V7H8.5zM12 6a3.989 3.989 0 0 0-1.334-2.982A3.983 3.983 0 0 0 8 2a3.983 3.983 0 0 0-2.667 1.018A3.989 3.989 0 0 0 4 6h8z"/>
+                    </svg>
+                    Report Issue
+                </a>
+                <span class="version-info">v1.0.0</span>
+            </p>
+        </div>
+    </footer>
 </body>
 </html> 

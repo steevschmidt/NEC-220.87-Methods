@@ -4,6 +4,8 @@ This directory contains test files for validating the NEC 220.87 panel capacity 
 
 ## Test Files
 
+### Standard Format Files
+
 ### test1_orig.csv
 * Original sample data from the Jupyter notebook
 * Simple 15-minute interval data
@@ -61,6 +63,22 @@ This directory contains test files for validating the NEC 220.87 panel capacity 
 * Should raise appropriate error messages
 * Tests input data validation
 
+### PG&E Format Files
+
+### pge_15min_1mo.csv
+* PG&E format with 15-minute interval data
+* 1 month of data
+* Contains Start Time, End Time, Usage, Cost, and Notes columns
+* Tests parsing of PG&E format with 15-minute intervals
+* Tests handling of additional columns
+
+### pge_hourly_1mo.csv
+* PG&E format with hourly interval data
+* 1 month of data
+* Contains Start Time, End Time, Usage, Cost, and Notes columns
+* Tests parsing of PG&E format with hourly intervals
+* Tests proper application of hourly multipliers with PG&E format
+
 ## Expected Results by Calculation Method
 
 The table below shows the expected Peak Power results (in kW) for each test file using different calculation methods:
@@ -77,6 +95,8 @@ The table below shows the expected Peak Power results (in kW) for each test file
 | test4_15min_1mo | 9.46 | 9.46 | 9.46 | 9.46 | 9.46 |
 | test5_15min_1yr | 27.85 | 27.85 | 27.85 | 27.85 | 27.85 |
 | test6_15mPV_1m | 7.95 | 7.95 | 7.95 | 7.95 | 7.95 |
+| pge_test1.csv | na | na | 12.36 | 12.36 | 12.36 |
+| pge_test2.csv | na | na | 8.40 | 6.46 | 11.24 |
 
 Other validation tests:
  1. Total Panel Capacity in kWh (not currently displayed) should equal the input Panel Capacity in Amps times the input Panel Voltage divided by 1000.
@@ -105,11 +125,18 @@ Other validation tests:
 
 ## Data Format
 
-All files follow this format:
+### Standard Format
 * CSV format
 * Two columns: DateTime,kWh
 * DateTime format varies by file
 * kWh values as decimal numbers
+
+### PG&E Format
+* CSV format with header rows
+* Multiple columns including: Start Time, End Time, Usage, Cost, Notes
+* "Start Time" column used for DateTime
+* "Usage" column used for kWh values
+* May contain additional metadata in header rows
 
 ## Usage
 
@@ -120,4 +147,6 @@ These files can be used to:
 4. Test visualization features
 5. Verify data cleaning procedures
 6. Test handling of real-world data anomalies
-7. Compare results across different calculation methods 
+7. Compare results across different calculation methods
+8. Validate format detection and parsing for different utility data formats
+9. Test compatibility with PG&E energy usage exports 
