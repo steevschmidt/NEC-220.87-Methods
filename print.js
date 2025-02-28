@@ -31,12 +31,24 @@ function openPrintablePage() {
     const remainingKw = remainingKwElement ? remainingKwElement.textContent : 'N/A';
     const remainingAmps = remainingAmpsElement ? remainingAmpsElement.textContent : 'N/A';
     
+    // Check if remaining capacity is negative
+    const isNegativeCapacity = parseFloat(remainingKw) < 0;
+    
     // Get data info if available
     let dataInfoSummary = '';
+    let analysisDetails = [];
     const dataInfoElement = document.getElementById('dataInfo');
     if (dataInfoElement) {
         const summaryElement = dataInfoElement.querySelector('.info-summary');
         if (summaryElement) dataInfoSummary = summaryElement.innerHTML;
+        
+        // Get all analysis details
+        const detailElements = dataInfoElement.querySelectorAll('.info-details .info-item');
+        if (detailElements && detailElements.length > 0) {
+            detailElements.forEach(item => {
+                analysisDetails.push(item.innerHTML);
+            });
+        }
     }
     
     // Get the chart as an image
@@ -50,7 +62,7 @@ function openPrintablePage() {
         }
     }
     
-    // Create the printable page HTML with more compact layout
+    // Create the printable page HTML with more comprehensive layout
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
         alert("Pop-up blocked. Please allow pop-ups for this site to use the print feature.");
@@ -77,18 +89,19 @@ function openPrintablePage() {
                     padding-bottom: 8px;
                     margin-top: 0;
                     margin-bottom: 15px;
-                    font-size: 20px;
+                    font-size: 22px;
                 }
                 h2 {
                     color: #2c3e50;
                     margin-top: 15px;
                     margin-bottom: 10px;
-                    font-size: 16px;
+                    font-size: 18px;
                 }
                 .compact-layout {
                     display: flex;
                     flex-wrap: wrap;
                     gap: 15px;
+                    margin-bottom: 15px;
                 }
                 .parameters {
                     flex: 1;
@@ -100,7 +113,7 @@ function openPrintablePage() {
                 }
                 .parameters p {
                     margin: 5px 0;
-                    font-size: 12px;
+                    font-size: 13px;
                 }
                 .results-container {
                     flex: 1;
@@ -116,19 +129,19 @@ function openPrintablePage() {
                     padding: 10px;
                 }
                 .result-box h3 {
-                    font-size: 12px;
+                    font-size: 14px;
                     color: #666;
                     margin: 0 0 5px 0;
                 }
                 .result-value {
-                    font-size: 16px;
+                    font-size: 18px;
                     font-weight: bold;
                     color: #3498db;
                 }
                 .chart-container {
                     width: 100%;
-                    height: 250px;
-                    margin: 10px 0;
+                    height: 300px;
+                    margin: 15px 0;
                 }
                 .chart-image {
                     max-width: 100%;
@@ -136,23 +149,48 @@ function openPrintablePage() {
                     border: 1px solid #ddd;
                 }
                 .data-summary {
-                    font-size: 12px;
+                    font-size: 13px;
                     margin: 5px 0;
                     color: #666;
                 }
                 .footer {
-                    margin-top: 15px;
+                    margin-top: 20px;
                     text-align: center;
-                    font-size: 10px;
+                    font-size: 11px;
                     color: #777;
                     border-top: 1px solid #ddd;
-                    padding-top: 5px;
+                    padding-top: 10px;
                 }
                 .info-note {
-                    font-size: 10px;
+                    font-size: 11px;
                     color: #666;
                     font-style: italic;
                     margin-top: 3px;
+                }
+                .analysis-details {
+                    background-color: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                    border-radius: 5px;
+                    padding: 12px;
+                    margin-top: 15px;
+                }
+                .analysis-details h2 {
+                    font-size: 16px;
+                    margin-top: 0;
+                    margin-bottom: 10px;
+                    color: #495057;
+                }
+                .detail-item {
+                    padding: 6px 0;
+                    border-bottom: 1px solid #e9ecef;
+                    font-size: 13px;
+                }
+                .detail-item:last-child {
+                    border-bottom: none;
+                }
+                .negative-value {
+                    color: #b71c1c !important; /* Dark red color */
+                    font-weight: bold;
                 }
                 @media print {
                     body {
@@ -161,18 +199,6 @@ function openPrintablePage() {
                     .no-print {
                         display: none;
                     }
-                }
-                .result-card h3 .help-icon {
-                    display: inline-flex;
-                    margin-left: 5px;
-                    vertical-align: middle;
-                    cursor: help;
-                }
-                .result-card .info-note {
-                    font-size: 12px;
-                    color: #666;
-                    font-style: italic;
-                    margin-top: 5px;
                 }
             </style>
         </head>
@@ -196,7 +222,7 @@ function openPrintablePage() {
                     </div>
                     <div class="result-box">
                         <h3>Remaining Capacity</h3>
-                        <div class="result-value">${remainingKw} kW / ${remainingAmps} A</div>
+                        <div class="result-value ${isNegativeCapacity ? 'negative-value' : ''}">${remainingKw} kW / ${remainingAmps} A</div>
                         <div class="info-note">*Includes NEC safety factor (1.25x) applied to peak power</div>
                     </div>
                 </div>
@@ -208,8 +234,15 @@ function openPrintablePage() {
             </div>
             ` : ''}
             
+            ${analysisDetails.length > 0 ? `
+            <div class="analysis-details">
+                <h2>Analysis Details</h2>
+                ${analysisDetails.map(detail => `<div class="detail-item">${detail}</div>`).join('')}
+            </div>
+            ` : ''}
+            
             <div class="footer">
-                <p>Generated by Panel Capacity Calculator on ${new Date().toLocaleDateString()}</p>
+                <p>Generated by Panel Capacity Calculator, Developed under a grant from the California Energy Commission, on ${new Date().toLocaleDateString()}</p>
                 <button class="no-print" onclick="window.print()">Print This Page</button>
             </div>
             

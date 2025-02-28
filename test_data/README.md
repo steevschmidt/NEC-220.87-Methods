@@ -63,7 +63,7 @@ This directory contains test files for validating the NEC 220.87 panel capacity 
 
 ## Expected Results by Calculation Method
 
-The table below shows the expected peak load results (in kW) for each test file using different calculation methods:
+The table below shows the expected Peak Power results (in kW) for each test file using different calculation methods:
 
 | Test File | HEA-jupyter | HEA-python | HEA-JS | NEC | LBNL |
 |-----------|-------------|------------|--------|-----|------|
@@ -77,6 +77,11 @@ The table below shows the expected peak load results (in kW) for each test file 
 | test4_15min_1mo | 9.46 | 9.46 | 9.46 | 9.46 | 9.46 |
 | test5_15min_1yr | 27.85 | 27.85 | 27.85 | 27.85 | 27.85 |
 | test6_15mPV_1m | 7.95 | 7.95 | 7.95 | 7.95 | 7.95 |
+
+Other validation tests:
+ 1. Total Panel Capacity in kWh (not currently displayed) should equal the input Panel Capacity in Amps times the input Panel Voltage divided by 1000.
+ 2. The Peak Power in amps should equal the Peak Power in kW divided by the Panel Voltage and multiplied by 1000.
+ 3. The Remaining Capacity should equal the total panel capacity minus the Peak Power multiplied by the NEC Safety Factor (1.25).
 
 ## Calculation Methods
 

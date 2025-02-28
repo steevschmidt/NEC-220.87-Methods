@@ -286,15 +286,20 @@ class PanelCalculator {
         // Update result elements
         document.getElementById('peakKw').textContent = results.peakPowerKw.toFixed(2);
         document.getElementById('peakAmps').textContent = results.peakPowerAmps.toFixed(1);
-        document.getElementById('remainingKw').textContent = results.remainingCapacityKw.toFixed(2);
-        document.getElementById('remainingAmps').textContent = results.remainingCapacityAmps.toFixed(1);
         
-        // Add calculation method info
-        const methodName = document.getElementById('calculationMethod').options[
-            document.getElementById('calculationMethod').selectedIndex
-        ].text;
+        const remainingKwElement = document.getElementById('remainingKw');
+        const remainingAmpsElement = document.getElementById('remainingAmps');
         
-        document.getElementById('calculationMethodInfo').textContent = methodName;
+        remainingKwElement.textContent = results.remainingCapacityKw.toFixed(2);
+        remainingAmpsElement.textContent = results.remainingCapacityAmps.toFixed(1);
+        
+        // Add negative class if remaining capacity is negative
+        const remainingValueContainer = remainingKwElement.closest('.result-value');
+        if (results.remainingCapacityKw < 0) {
+            remainingValueContainer.classList.add('negative-value');
+        } else {
+            remainingValueContainer.classList.remove('negative-value');
+        }
         
         // Show results section with animation
         this.resultsDiv.classList.remove('hidden');
@@ -533,6 +538,10 @@ class PanelCalculator {
             }
         }
         
+        // Get the calculation method name
+        const methodElement = document.getElementById('calculationMethod');
+        const methodName = methodElement.options[methodElement.selectedIndex].text;
+        
         return {
             summary: `Data spans ${daysCovered} days (${firstDate.toLocaleDateString()} to ${lastDate.toLocaleDateString()})`,
             details: [
@@ -544,6 +553,7 @@ class PanelCalculator {
                 `Average readings per day: ${(data.length / daysCovered).toFixed(1)}`,
                 `Number of hours with data: ${Object.keys(hourlyGroups).length}`,
                 `Peak reading(s): ${peakReadings}`,
+                `Calculation method: ${methodName}`,
                 ...(warnings.length > 0 ? warnings : [])
             ],
             warnings

@@ -14,6 +14,8 @@ This repository provides implementations of the NEC 220.87 method for calculatin
   - Multiple calculation methods
   - Interactive visualization
   - Mobile-responsive design
+  - Printable detailed reports
+  - Visual indicators for capacity issues
 
 - **Python Implementation**: 
   - Jupyter notebook with detailed methodology
@@ -59,9 +61,10 @@ The repository implements three different calculation methods:
 ### Web Application
 1. Open `index.html` in a web browser
 2. Upload a CSV file with DateTime and kWh columns, or use the sample data
-3. Enter your panel specifications
+3. Enter your panel specifications (size and voltage)
 4. Select a calculation method
 5. View the results and visualization
+6. Print a detailed report for your records
 
 ### Python Application
 1. Navigate to the `python_version` directory
@@ -74,14 +77,25 @@ The repository implements three different calculation methods:
 - CSV file with DateTime and kWh columns
 - For 15-minute data: at least 30 days of readings
 - For hourly data: at least 1 year of readings
+- Panel size in amps (common sizes: 100A, 125A, 150A, 200A)
+- Panel voltage (options: 240V, 208V, or 120V)
 
 ## Output Information
 
 - Peak power in kW and Amps
-- Remaining panel capacity
-- Data analysis summary
+- Remaining panel capacity (highlighted in red if negative)
+- Data analysis summary and detailed statistics
 - Interactive visualization of hourly load patterns
 - Calculation method used
+- Printable report with all analysis details
+
+## Key Features
+
+- **NEC Safety Factor**: Automatically applies the required 1.25x safety factor to peak loads when calculating remaining capacity
+- **Standardized Voltage Options**: Provides the three standard US residential and commercial voltage options (240V, 208V, 120V)
+- **Visual Warnings**: Highlights negative remaining capacity in red to clearly indicate when a panel upgrade may be needed
+- **Comprehensive Reports**: Generates printable reports with all analysis details for documentation purposes
+- **Data Validation**: Checks data quality and provides warnings about insufficient data periods
 
 ## Research and Results
 
@@ -93,4 +107,4 @@ Contributions to improve the implementations or add new features are welcome. Pl
 
 ## License
 
-[Add your license information here]
+[TBD: Add license information here]

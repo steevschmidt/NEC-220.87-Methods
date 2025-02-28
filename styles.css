@@ -454,4 +454,10 @@ select:focus {
 
 #printResultsBtn:hover {
     background-color: #3a5a8f;
+}
+
+/* Add this to your styles.css file */
+.negative-value {
+    color: #b71c1c !important; /* Dark red color */
+    font-weight: bold;
 } 
