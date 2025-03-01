@@ -566,4 +566,205 @@ select:focus {
         display: flex;
         flex-direction: column;
     }
+}
+
+/* Remove loading indicator styles */
+/* Loading Indicator */
+.loading-indicator {
+    display: none; /* Hide it completely but keep the class in case it's referenced elsewhere */
+}
+
+.spinner {
+    display: none;
+}
+
+.loading-text {
+    display: none;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Scroll Indicator */
+.scroll-indicator {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: bounceIn 0.5s ease-out;
+    transition: transform 0.2s, opacity 0.3s;
+}
+
+.scroll-indicator:hover {
+    transform: translateY(-5px);
+}
+
+.scroll-text {
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.scroll-arrow {
+    font-size: 1.25rem;
+    animation: bounce 1.5s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+    70% {
+        transform: scale(1.1) translateY(-5px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.fade-out {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+/* Responsive adjustments for indicators */
+@media (max-width: 640px) {
+    .scroll-indicator {
+        bottom: 1rem;
+        right: 1rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .loading-indicator {
+        padding: 0.5rem;
+    }
+}
+
+/* Instructions Section */
+.instructions-container {
+    margin-bottom: 2rem;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.basic-instructions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.basic-instructions p {
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.instructions-toggle {
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.instructions-toggle:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.detailed-instructions {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background-color: #f8fafc;
+    border-radius: 0.75rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.detailed-instructions h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.detailed-instructions ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.detailed-instructions li {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.detailed-instructions a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.detailed-instructions a:hover {
+    text-decoration: underline;
+}
+
+.detailed-instructions code {
+    background-color: #f1f5f9;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #0f172a;
+}
+
+.detailed-instructions pre {
+    background-color: #f1f5f9;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    font-family: monospace;
+    font-size: 0.9em;
+    overflow-x: auto;
+    white-space: pre;
+    color: #0f172a;
+    border-left: 3px solid var(--primary-color);
+    margin: 1rem 0 1.5rem 0;
+}
+
+@media (max-width: 640px) {
+    .basic-instructions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .instructions-toggle {
+        align-self: flex-start;
+    }
 } 

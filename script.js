@@ -27,6 +27,25 @@ function checkBrowserCompatibility() {
     }
 }
 
+// Add instructions toggle functionality
+function initializeInstructionsToggle() {
+    const showButton = document.getElementById('showDetailedInstructions');
+    const hideButton = document.getElementById('hideDetailedInstructions');
+    const detailedInstructions = document.getElementById('detailedInstructions');
+    
+    if (showButton && hideButton && detailedInstructions) {
+        showButton.addEventListener('click', () => {
+            detailedInstructions.classList.remove('hidden');
+            detailedInstructions.classList.add('fade-in');
+        });
+        
+        hideButton.addEventListener('click', () => {
+            detailedInstructions.classList.add('hidden');
+            detailedInstructions.classList.remove('fade-in');
+        });
+    }
+}
+
 class PanelCalculator {
     constructor() {
         // DOM elements
@@ -61,7 +80,9 @@ class PanelCalculator {
         this.uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
         
         // Calculate button
-        this.calculateBtn.addEventListener('click', () => this.processData());
+        this.calculateBtn.addEventListener('click', () => {
+            this.processData();
+        });
     }
 
     handleFileSelect(event) {
@@ -529,6 +550,17 @@ class PanelCalculator {
             exportBtn.classList.remove('hidden');
             exportBtn.addEventListener('click', () => this.exportResults());
         }
+        
+        // Scroll to results - we don't need the scroll indicator since we auto-scroll
+        this.scrollToResults();
+    }
+
+    scrollToResults() {
+        // Smooth scroll to results section
+        this.resultsDiv.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start'
+        });
     }
 
     createChart(data) {
@@ -1109,6 +1141,7 @@ Steps to Reproduce:
 // Initialize the calculator when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     checkBrowserCompatibility();
+    initializeInstructionsToggle();
     new PanelCalculator();
     
     // Add event listener for print button
