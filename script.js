@@ -297,29 +297,52 @@ class PanelCalculator {
     }
 
     parsePGEDateTime(dateTimeStr) {
-        // PG&E format: MM/DD/YY HH:MM
+        // Split date and time
         const parts = dateTimeStr.split(' ');
         if (parts.length !== 2) {
             throw new Error(`Invalid date/time format: ${dateTimeStr}`);
         }
         
-        const dateParts = parts[0].split('/');
-        if (dateParts.length !== 3) {
-            throw new Error(`Invalid date format: ${parts[0]}`);
+        const dateStr = parts[0];
+        const timeStr = parts[1];
+        
+        // Check if date format is YYYY-MM-DD or MM/DD/YY
+        let year, month, day;
+        
+        if (dateStr.includes('-')) {
+            // Handle YYYY-MM-DD format
+            const dateParts = dateStr.split('-');
+            if (dateParts.length !== 3) {
+                throw new Error(`Invalid date format: ${dateStr}`);
+            }
+            
+            year = parseInt(dateParts[0]);
+            month = parseInt(dateParts[1]) - 1; // JavaScript months are 0-indexed
+            day = parseInt(dateParts[2]);
+        } else if (dateStr.includes('/')) {
+            // Handle MM/DD/YY format
+            const dateParts = dateStr.split('/');
+            if (dateParts.length !== 3) {
+                throw new Error(`Invalid date format: ${dateStr}`);
+            }
+            
+            let yearPart = parseInt(dateParts[2]);
+            // Handle 2-digit year (assume 20xx for years less than 50, 19xx otherwise)
+            if (yearPart < 100) {
+                yearPart = yearPart < 50 ? 2000 + yearPart : 1900 + yearPart;
+            }
+            
+            year = yearPart;
+            month = parseInt(dateParts[0]) - 1; // JavaScript months are 0-indexed
+            day = parseInt(dateParts[1]);
+        } else {
+            throw new Error(`Unsupported date format: ${dateStr}`);
         }
         
-        let year = parseInt(dateParts[2]);
-        // Handle 2-digit year (assume 20xx for years less than 50, 19xx otherwise)
-        if (year < 100) {
-            year = year < 50 ? 2000 + year : 1900 + year;
-        }
-        
-        const month = parseInt(dateParts[0]) - 1; // JavaScript months are 0-indexed
-        const day = parseInt(dateParts[1]);
-        
-        const timeParts = parts[1].split(':');
-        if (timeParts.length !== 2) {
-            throw new Error(`Invalid time format: ${parts[1]}`);
+        // Parse time (HH:MM)
+        const timeParts = timeStr.split(':');
+        if (timeParts.length < 2) {
+            throw new Error(`Invalid time format: ${timeStr}`);
         }
         
         const hour = parseInt(timeParts[0]);
