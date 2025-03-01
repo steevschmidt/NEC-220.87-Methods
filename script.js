@@ -60,7 +60,7 @@ class PanelCalculator {
 
         // Verify Chart.js is loaded
         if (typeof Chart === 'undefined') {
-            console.error('Chart.js not loaded');
+            this.log('Chart.js not loaded', 'error');
         }
 
         // Add sample data handlers
@@ -170,7 +170,7 @@ class PanelCalculator {
                         data = await this.parsePGECSV(csvContent);
                     }
                     
-                    console.log(`Processed ${data.length} valid readings from ${format} format`);
+                    this.log(`Processed ${data.length} valid readings from ${format} format`, 'info');
                     resolve(data);
                 } catch (error) {
                     error.details = error.cause || [];
@@ -425,19 +425,25 @@ class PanelCalculator {
             // Calculate total panel capacity in kW
             const totalPanelCapacityKw = panelSize * panelVoltage / 1000;
             
-            // Apply the NEC safety factor (1.25) to the peak load when calculating remaining capacity
-            const remainingCapacityKw = totalPanelCapacityKw - (FINAL_CAPACITY_MULTIPLIER * peakPowerKw);
-            const remainingCapacityAmps = panelSize - (FINAL_CAPACITY_MULTIPLIER * peakPowerAmps);
+            // Calculate unused capacity (before applying safety factor)
+            const unusedCapacityKw = totalPanelCapacityKw - peakPowerKw;
+            const unusedCapacityAmps = panelSize - peakPowerAmps;
+            
+            // Calculate available capacity
+            const availableCapacityKw = totalPanelCapacityKw - (FINAL_CAPACITY_MULTIPLIER * peakPowerKw);
+            const availableCapacityAmps = panelSize - (FINAL_CAPACITY_MULTIPLIER * peakPowerAmps);
 
             return {
                 peakPowerKw,
                 peakPowerAmps,
-                remainingCapacityKw,
-                remainingCapacityAmps,
+                unusedCapacityKw,
+                unusedCapacityAmps,
+                availableCapacityKw,
+                availableCapacityAmps,
                 hourlyData
             };
         } catch (error) {
-            console.error('Calculation error:', error);
+            this.log('Calculation error: ' + error, 'error');
             throw error;
         }
     }
@@ -526,18 +532,33 @@ class PanelCalculator {
         document.getElementById('peakKw').textContent = results.peakPowerKw.toFixed(2);
         document.getElementById('peakAmps').textContent = results.peakPowerAmps.toFixed(1);
         
-        const remainingKwElement = document.getElementById('remainingKw');
-        const remainingAmpsElement = document.getElementById('remainingAmps');
+        // Update unused capacity elements
+        const unusedKwElement = document.getElementById('unusedKw');
+        const unusedAmpsElement = document.getElementById('unusedAmps');
         
-        remainingKwElement.textContent = results.remainingCapacityKw.toFixed(2);
-        remainingAmpsElement.textContent = results.remainingCapacityAmps.toFixed(1);
+        unusedKwElement.textContent = results.unusedCapacityKw.toFixed(2);
+        unusedAmpsElement.textContent = results.unusedCapacityAmps.toFixed(1);
         
-        // Add negative class if remaining capacity is negative
-        const remainingValueContainer = remainingKwElement.closest('.result-value');
-        if (results.remainingCapacityKw < 0) {
-            remainingValueContainer.classList.add('negative-value');
+        // Add negative class if unused capacity is negative
+        const unusedValueContainer = unusedKwElement.closest('.result-value');
+        if (results.unusedCapacityKw < 0) {
+            unusedValueContainer.classList.add('negative-value');
         } else {
-            remainingValueContainer.classList.remove('negative-value');
+            unusedValueContainer.classList.remove('negative-value');
+        }
+        
+        const availableKwElement = document.getElementById('availableKw');
+        const availableAmpsElement = document.getElementById('availableAmps');
+        
+        availableKwElement.textContent = results.availableCapacityKw.toFixed(2);
+        availableAmpsElement.textContent = results.availableCapacityAmps.toFixed(1);
+        
+        // Add negative class if available capacity is negative
+        const availableValueContainer = availableKwElement.closest('.result-value');
+        if (results.availableCapacityKw < 0) {
+            availableValueContainer.classList.add('negative-value');
+        } else {
+            availableValueContainer.classList.remove('negative-value');
         }
         
         // Show results section with animation
@@ -912,72 +933,6 @@ class PanelCalculator {
         }, 5000);
     }
 
-    // Add new method to parse CSV content directly
-    async parseCSVContent(csvContent) {
-        try {
-            const rows = csvContent.split('\n');
-            const headers = rows[0].split(',');
-            
-            // Validate CSV structure - only accept kWh
-            const dateTimeIndex = headers.findIndex(h => h.trim().toLowerCase() === 'datetime');
-            const kwhIndex = headers.findIndex(h => h.trim().toLowerCase() === 'kwh');
-            
-            if (dateTimeIndex === -1 || kwhIndex === -1) {
-                throw new Error('CSV must contain DateTime and kWh columns');
-            }
-
-            // Parse data rows
-            const data = [];
-            const errors = [];
-            let invalidRows = 0;
-
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i].trim();
-                if (!row) continue;
-
-                const columns = row.split(',');
-                const dateStr = columns[dateTimeIndex]?.trim().replace(/^"|"$/g, '');
-                const kwhStr = columns[kwhIndex]?.trim().replace(/^"|"$/g, '');
-                
-                if (!dateStr || !kwhStr) {
-                    errors.push(`Row ${i + 1}: Missing required values`);
-                    invalidRows++;
-                    continue;
-                }
-
-                const datetime = new Date(dateStr);
-                const kwh = parseFloat(kwhStr);
-
-                if (isNaN(datetime.getTime())) {
-                    errors.push(`Row ${i + 1}: Invalid date format "${dateStr}"`);
-                    invalidRows++;
-                    continue;
-                }
-
-                if (isNaN(kwh)) {
-                    errors.push(`Row ${i + 1}: Invalid kWh value "${kwhStr}"`);
-                    invalidRows++;
-                    continue;
-                }
-
-                data.push({ datetime, kwh });
-            }
-
-            if (data.length === 0) {
-                throw new Error('No valid data found in CSV file', { cause: errors });
-            }
-
-            if (invalidRows > 0) {
-                throw new Error(`Found ${invalidRows} invalid rows`, { cause: errors });
-            }
-
-            return data;
-        } catch (error) {
-            error.details = error.cause || [];
-            throw error;
-        }
-    }
-
     initializeHelpIcons() {
         document.querySelectorAll('.help-icon').forEach(icon => {
             icon.addEventListener('click', (e) => {
@@ -1016,44 +971,24 @@ class PanelCalculator {
         });
     }
 
-    async importFromAPI(provider, credentials) {
-        try {
-            this.showInfo(`Connecting to ${provider} API...`);
-            
-            // This would be implemented for each provider
-            let data;
-            if (provider === 'utilityapi') {
-                data = await this.importFromUtilityAPI(credentials);
-            } else if (provider === 'hea') {
-                data = await this.importFromHEA(credentials);
-            } else {
-                throw new Error(`Unsupported API provider: ${provider}`);
-            }
-            
-            // Process the data as usual
-            const analysis = this.analyzeData(data, provider);
-            this.showDataInfo(analysis.summary, analysis.details, analysis.warnings);
-            
-            const results = this.calculatePanelCapacity(data);
-            this.displayResults(results);
-            this.createChart(data);
-            
-            return data;
-        } catch (error) {
-            this.showError(`API Import Error: ${error.message}`);
-            throw error;
+    // Add a logging method that can be easily disabled in production
+    log(message, level = 'info') {
+        // Set to false to disable logging in production
+        const enableLogging = true;
+        
+        if (!enableLogging) return;
+        
+        switch(level) {
+            case 'error':
+                console.error(message);
+                break;
+            case 'warn':
+                console.warn(message);
+                break;
+            case 'info':
+            default:
+                console.log(message);
         }
-    }
-
-    // Placeholder methods for future API integrations
-    async importFromUtilityAPI(credentials) {
-        // This would be implemented when ready
-        throw new Error('UtilityAPI integration not yet implemented');
-    }
-
-    async importFromHEA(credentials) {
-        // This would be implemented when ready
-        throw new Error('HEA API integration not yet implemented');
     }
 
     exportResults() {
@@ -1061,8 +996,10 @@ class PanelCalculator {
             // Get current results
             const peakKw = document.getElementById('peakKw').textContent;
             const peakAmps = document.getElementById('peakAmps').textContent;
-            const remainingKw = document.getElementById('remainingKw').textContent;
-            const remainingAmps = document.getElementById('remainingAmps').textContent;
+            const unusedKw = document.getElementById('unusedKw').textContent;
+            const unusedAmps = document.getElementById('unusedAmps').textContent;
+            const availableKw = document.getElementById('availableKw').textContent;
+            const availableAmps = document.getElementById('availableAmps').textContent;
             
             // Get input parameters
             const panelSize = document.getElementById('panelSize').value;
@@ -1070,17 +1007,40 @@ class PanelCalculator {
             const methodElement = document.getElementById('calculationMethod');
             const method = methodElement.options[methodElement.selectedIndex].text;
             
+            // Get data info from the DOM if available
+            let dataPeriod = "Not available";
+            let dataCount = "Not available";
+            
+            // Try to extract data period from the info summary
+            const infoSummary = document.querySelector('.info-summary');
+            if (infoSummary) {
+                const summaryText = infoSummary.textContent;
+                // Extract data period from summary text which has format "Data spans X days (start to end)"
+                const dataPeriodMatch = summaryText.match(/Data spans (\d+) days \((.*) to (.*)\)/);
+                if (dataPeriodMatch) {
+                    dataPeriod = `${dataPeriodMatch[1]} days (${dataPeriodMatch[2]} to ${dataPeriodMatch[3]})`;
+                }
+            }
+            
+            // Try to extract reading count from the info details
+            const infoDetails = document.querySelectorAll('.info-item');
+            infoDetails.forEach(item => {
+                if (item.textContent.includes('Total readings:')) {
+                    dataCount = item.textContent.replace('Total readings:', '').trim();
+                }
+            });
+            
             // Create CSV content
             const csvContent = [
-                'Parameter,Value',
-                `Panel Size,${panelSize} A`,
-                `Voltage,${voltage} V`,
+                `Date,${new Date().toLocaleDateString()}`,
+                `Panel Size,${panelSize} Amps`,
+                `Panel Voltage,${voltage} Volts`,
                 `Calculation Method,${method}`,
                 `Peak Power,${peakKw} kW`,
-                `Peak Current,${peakAmps} A`,
-                `Remaining Capacity,${remainingKw} kW`,
-                `Remaining Current,${remainingAmps} A`,
-                `Date Generated,${new Date().toLocaleString()}`
+                `Unused Capacity,${unusedKw} kW`,
+                `Available Capacity,${availableKw} kW`,
+                `Data Period,${dataPeriod}`,
+                `Number of Readings,${dataCount}`
             ].join('\n');
             
             // Create download link

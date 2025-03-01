@@ -1,5 +1,17 @@
 // Function to open a printable page with results
 function openPrintablePage() {
+    // Show loading indicator
+    const printBtn = document.getElementById('printResultsBtn');
+    const originalText = printBtn.innerHTML;
+    printBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px;">
+            <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+            <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/>
+        </svg>
+        Opening...
+    `;
+    printBtn.disabled = true;
+
     // Get current values directly from the DOM at the moment of printing
     const panelSizeElement = document.getElementById('panelSize');
     const panelSize = panelSizeElement ? panelSizeElement.value : '150';
@@ -23,16 +35,21 @@ function openPrintablePage() {
     // Get the current results
     const peakKwElement = document.getElementById('peakKw');
     const peakAmpsElement = document.getElementById('peakAmps');
-    const remainingKwElement = document.getElementById('remainingKw');
-    const remainingAmpsElement = document.getElementById('remainingAmps');
+    const unusedKwElement = document.getElementById('unusedKw');
+    const unusedAmpsElement = document.getElementById('unusedAmps');
+    const availableKwElement = document.getElementById('availableKw');
+    const availableAmpsElement = document.getElementById('availableAmps');
     
     const peakKw = peakKwElement ? peakKwElement.textContent : 'N/A';
     const peakAmps = peakAmpsElement ? peakAmpsElement.textContent : 'N/A';
-    const remainingKw = remainingKwElement ? remainingKwElement.textContent : 'N/A';
-    const remainingAmps = remainingAmpsElement ? remainingAmpsElement.textContent : 'N/A';
+    const unusedKw = unusedKwElement ? unusedKwElement.textContent : 'N/A';
+    const unusedAmps = unusedAmpsElement ? unusedAmpsElement.textContent : 'N/A';
+    const availableKw = availableKwElement ? availableKwElement.textContent : 'N/A';
+    const availableAmps = availableAmpsElement ? availableAmpsElement.textContent : 'N/A';
     
-    // Check if remaining capacity is negative
-    const isNegativeCapacity = parseFloat(remainingKw) < 0;
+    // Check if capacities are negative
+    const isUnusedCapacityNegative = parseFloat(unusedKw) < 0;
+    const isNegativeCapacity = parseFloat(availableKw) < 0;
     
     // Get data info if available
     let dataInfoSummary = '';
@@ -58,7 +75,9 @@ function openPrintablePage() {
         try {
             chartImage = chartCanvas.toDataURL('image/png');
         } catch (e) {
-            console.error('Error converting chart to image:', e);
+            // Use a silent fail approach in production
+            // console.error('Error converting chart to image:', e);
+            chartImage = ''; // Just use empty string if conversion fails
         }
     }
     
@@ -66,6 +85,9 @@ function openPrintablePage() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
         alert("Pop-up blocked. Please allow pop-ups for this site to use the print feature.");
+        // Reset button state
+        printBtn.innerHTML = originalText;
+        printBtn.disabled = false;
         return;
     }
     
@@ -141,7 +163,7 @@ function openPrintablePage() {
                 .chart-container {
                     width: 100%;
                     height: 300px;
-                    margin: 15px 0 5px 0;
+                    margin: 15px 0 0 0;
                 }
                 .chart-image {
                     max-width: 100%;
@@ -172,7 +194,7 @@ function openPrintablePage() {
                     border: 1px solid #e9ecef;
                     border-radius: 5px;
                     padding: 12px;
-                    margin-top: 5px;
+                    margin-top: -5px;
                 }
                 .analysis-details h2 {
                     font-size: 16px;
@@ -191,6 +213,9 @@ function openPrintablePage() {
                 .negative-value {
                     color: #b71c1c !important; /* Dark red color */
                     font-weight: bold;
+                }
+                .compact-spacing {
+                    margin-top: -10px;
                 }
                 @media print {
                     body {
@@ -221,8 +246,12 @@ function openPrintablePage() {
                         <div class="result-value">${peakKw} kW / ${peakAmps} A</div>
                     </div>
                     <div class="result-box">
-                        <h3>Remaining Capacity</h3>
-                        <div class="result-value ${isNegativeCapacity ? 'negative-value' : ''}">${remainingKw} kW / ${remainingAmps} A</div>
+                        <h3>Unused Capacity</h3>
+                        <div class="result-value ${isUnusedCapacityNegative ? 'negative-value' : ''}">${unusedKw} kW / ${unusedAmps} A</div>
+                    </div>
+                    <div class="result-box">
+                        <h3>Available Capacity</h3>
+                        <div class="result-value ${isNegativeCapacity ? 'negative-value' : ''}">${availableKw} kW / ${availableAmps} A</div>
                         <div class="info-note">*Includes NEC safety factor (1.25x) applied to peak power</div>
                     </div>
                 </div>
@@ -235,7 +264,7 @@ function openPrintablePage() {
             ` : ''}
             
             ${analysisDetails.length > 0 ? `
-            <div class="analysis-details">
+            <div class="analysis-details compact-spacing">
                 <h2>Analysis Details</h2>
                 ${analysisDetails.map(detail => `<div class="detail-item">${detail}</div>`).join('')}
             </div>
@@ -258,4 +287,10 @@ function openPrintablePage() {
         </html>
     `);
     printWindow.document.close();
+    
+    // Reset button state after a short delay
+    setTimeout(() => {
+        printBtn.innerHTML = originalText;
+        printBtn.disabled = false;
+    }, 1000);
 } 

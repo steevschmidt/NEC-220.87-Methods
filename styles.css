@@ -438,23 +438,32 @@ select:focus {
 }
 
 .print-button-container {
+    display: flex;
+    justify-content: flex-start;
     margin-top: 20px;
-    text-align: center;
+    gap: 10px;
 }
 
-#printResultsBtn {
-    background-color: #4a6da7;
-    color: white;
-    padding: 10px 20px;
-    border: none;
+#printResultsBtn, #exportResultsBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s;
+    transition: all 0.2s ease;
 }
 
-#printResultsBtn:hover {
-    background-color: #3a5a8f;
+#printResultsBtn:hover, #exportResultsBtn:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+}
+
+#printResultsBtn:disabled, #exportResultsBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* Add this to your styles.css file */
@@ -767,4 +776,28 @@ select:focus {
     .instructions-toggle {
         align-self: flex-start;
     }
+}
+
+/* Add styles for the new tab indicator */
+.new-tab-indicator {
+    font-size: 0.8em;
+    color: #666;
+    font-style: italic;
+    margin-left: 4px;
+}
+
+/* Style for the export button to match */
+#exportResultsBtn {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 10px;
+}
+
+#exportResultsBtn:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
 } 

@@ -84,7 +84,7 @@ The repository implements three different calculation methods:
 ## Output Information
 
 - Peak power in kW and Amps
-- Remaining panel capacity (highlighted in red if negative)
+- Available panel capacity (highlighted in red if negative)
 - Data analysis summary and detailed statistics
 - Interactive visualization of hourly load patterns
 - Calculation method used
@@ -92,9 +92,9 @@ The repository implements three different calculation methods:
 
 ## Key Features
 
-- **NEC Safety Factor**: Automatically applies the required 1.25x safety factor to peak loads when calculating remaining capacity
+- **NEC Safety Factor**: Automatically applies the required 1.25x safety factor to peak loads when calculating available capacity
 - **Standardized Voltage Options**: Provides the three standard US residential and commercial voltage options (240V, 208V, 120V)
-- **Visual Warnings**: Highlights negative remaining capacity in red to clearly indicate when a panel upgrade may be needed
+- **Visual Warnings**: Highlights negative available capacity in red to clearly indicate when a panel upgrade may be needed
 - **Comprehensive Reports**: Generates printable reports with all analysis details for documentation purposes
 - **Data Validation**: Checks data quality and provides warnings about insufficient data periods
 

@@ -182,10 +182,10 @@
                 </div>
                 <div class="result-card">
                     <h3>
-                        Remaining Capacity
+                        Unused Capacity
                         <span class="help-icon" 
-                              title="This is the remaining capacity after applying the NEC safety factor (1.25x) to the measured peak power." 
-                              aria-label="Help: Remaining Capacity" 
+                              title="This is the unused capacity before applying the NEC safety factor." 
+                              aria-label="Help: Unused Capacity" 
                               role="tooltip">
                             <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
@@ -193,11 +193,27 @@
                         </span>
                     </h3>
                     <div class="result-value">
-                        <span id="remainingKw">-</span> kW
+                        <span id="unusedKw">-</span> kW
                         <span class="separator">|</span>
-                        <span id="remainingAmps">-</span> A
+                        <span id="unusedAmps">-</span> A
                     </div>
-                    <div class="info-note">*Includes NEC safety factor (1.25x)</div>
+                </div>
+                <div class="result-card">
+                    <h3>
+                        Available Capacity
+                        <span class="help-icon" 
+                              title="This is the available capacity after applying the NEC safety factor (1.25x) to the measured peak power." 
+                              aria-label="Help: Available Capacity" 
+                              role="tooltip">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </h3>
+                    <div class="result-value">
+                        <span id="availableKw">-</span> kW / <span id="availableAmps">-</span> A
+                    </div>
+                    <div class="info-note">Includes 1.25x NEC safety factor</div>
                 </div>
             </div>
             <div class="chart-container">
@@ -206,11 +222,23 @@
             
             <!-- Add Print Results button -->
             <div class="print-button-container">
-                <button id="printResultsBtn" class="btn">Print Results</button>
+                <button id="printResultsBtn" class="btn" title="Opens a printable version of these results in a new tab for printing or saving as PDF">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px;">
+                        <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+                        <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/>
+                    </svg>
+                    Print Results <span class="new-tab-indicator">(opens in new tab)</span>
+                </button>
             </div>
 
             <!-- Add this after the print button -->
-            <button id="exportResultsBtn" class="btn hidden">Export Results</button>
+            <button id="exportResultsBtn" class="btn hidden" title="Export these results to a CSV file for use in spreadsheets">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px;">
+                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                </svg>
+                Export CSV
+            </button>
         </div>
     </div>
 
