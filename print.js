@@ -193,19 +193,28 @@ function openPrintablePage() {
                     background-color: #f8f9fa;
                     border: 1px solid #e9ecef;
                     border-radius: 5px;
-                    padding: 12px;
+                    padding: 10px;
                     margin-top: -5px;
                 }
                 .analysis-details h2 {
                     font-size: 16px;
                     margin-top: 0;
-                    margin-bottom: 10px;
+                    margin-bottom: 8px;
                     color: #495057;
                 }
+                .detail-items-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    column-gap: 15px;
+                }
+                .detail-column {
+                    flex: 1;
+                    min-width: 45%;
+                }
                 .detail-item {
-                    padding: 6px 0;
+                    padding: 4px 0;
                     border-bottom: 1px solid #e9ecef;
-                    font-size: 13px;
+                    font-size: 12px;
                 }
                 .detail-item:last-child {
                     border-bottom: none;
@@ -266,7 +275,14 @@ function openPrintablePage() {
             ${analysisDetails.length > 0 ? `
             <div class="analysis-details compact-spacing">
                 <h2>Analysis Details</h2>
-                ${analysisDetails.map(detail => `<div class="detail-item">${detail}</div>`).join('')}
+                <div class="detail-items-container">
+                    <div class="detail-column">
+                        ${analysisDetails.slice(0, Math.ceil(analysisDetails.length/2)).map(detail => `<div class="detail-item">${detail}</div>`).join('')}
+                    </div>
+                    <div class="detail-column">
+                        ${analysisDetails.slice(Math.ceil(analysisDetails.length/2)).map(detail => `<div class="detail-item">${detail}</div>`).join('')}
+                    </div>
+                </div>
             </div>
             ` : ''}
             
