@@ -1,5 +1,5 @@
 // Constants for version and calculations
-const APP_VERSION = 'v0.1.2';
+const APP_VERSION = 'v0.1.3';
 const HEA_SINGLE_READING_MULTIPLIER = 1.3;
 const FINAL_CAPACITY_MULTIPLIER = 1.25;
 
@@ -813,6 +813,9 @@ class PanelCalculator {
     }
 
     showError(message, details = []) {
+        // Check if this is a file format error
+        const isFileFormatError = message.includes('Unsupported file format');
+        
         this.fileInfo.innerHTML = `
             <div class="error-container">
                 <div class="error-summary">${message}</div>
@@ -824,8 +827,56 @@ class PanelCalculator {
                         ${details.map(err => `<div class="error-item">${err}</div>`).join('')}
                     </div>
                 ` : ''}
+                ${isFileFormatError ? `
+                    <div class="report-format-container">
+                        <button id="reportFormatBtn" class="btn">Report Unsupported Format</button>
+                    </div>
+                ` : ''}
             </div>
         `;
+        
+        // Add event listener for the report format button if it exists
+        if (isFileFormatError) {
+            const reportBtn = document.getElementById('reportFormatBtn');
+            if (reportBtn) {
+                reportBtn.addEventListener('click', () => {
+                    // Get current app state
+                    const panelSize = document.getElementById('panelSize').value || 'Not set';
+                    const voltage = document.getElementById('panelVoltage').value || 'Not set';
+                    const methodElement = document.getElementById('calculationMethod');
+                    const method = methodElement ? methodElement.options[methodElement.selectedIndex].text : 'Not set';
+                    
+                    // Get browser info
+                    const browserInfo = `${navigator.userAgent}`;
+                    
+                    // Create email body
+                    const body = `
+I encountered an unsupported file format when using the Panel Capacity Calculator.
+
+System Information:
+- Browser: ${browserInfo}
+- Panel Size: ${panelSize} A
+- Voltage: ${voltage} V
+- Calculation Method: ${method}
+- App Version: ${APP_VERSION}
+- Date: ${new Date().toISOString()}
+
+My file is from the following electric utility: 
+[Please specify your electric utility company]
+
+Additional information:
+[Please provide any additional details that might help us support your file format]
+
+Note: Please attach your CSV file to this email so we can analyze it and add support for your utility.
+                    `.trim();
+                    
+                    // Open mailto link
+                    const mailtoUrl = `mailto:steve@hea.com?subject=Unsupported%20File%20Format%20Report&body=${encodeURIComponent(body)}`;
+                    window.open(mailtoUrl, '_blank');
+                });
+            }
+        }
+        
         this.fileInfo.classList.add('error');
         setTimeout(() => {
             this.fileInfo.classList.remove('error');
@@ -1055,7 +1106,7 @@ class PanelCalculator {
         }
         
         // Unknown format
-        throw new Error('Unsupported file format. Please upload a valid CSV file with either DateTime and kWh columns, or a PG&E energy usage export.');
+        throw new Error('Unsupported file format. We currently support simple CSV files with DateTime and kWh columns and PG&E energy usage exports. If your file is from your electric utility, please click the "Report Unsupported Format" button below to help us add support for it.');
     }
 
     // Helper method to read file content

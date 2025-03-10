@@ -277,7 +277,9 @@ input[type="number"]:focus {
 }
 
 .error-item:not(:last-child) {
+    margin-bottom: 8px;
     border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
 }
 
 .info-container {
@@ -800,4 +802,24 @@ select:focus {
 #exportResultsBtn:hover {
     background-color: #e9ecef;
     border-color: #ced4da;
+}
+
+.report-format-container {
+    margin-top: 16px;
+    text-align: center;
+}
+
+#reportFormatBtn {
+    background-color: #4b5563;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#reportFormatBtn:hover {
+    background-color: #374151;
 } 
