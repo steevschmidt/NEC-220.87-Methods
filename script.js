@@ -1,7 +1,8 @@
-// Constants for calculations
+// Constants for version and calculations
+const APP_VERSION = 'v0.1.2';
 const HEA_SINGLE_READING_MULTIPLIER = 1.3;
 const FINAL_CAPACITY_MULTIPLIER = 1.25;
-const APP_VERSION = 'v0.1.1';
+
 
 function checkBrowserCompatibility() {
     const incompatibilities = [];
@@ -169,6 +170,8 @@ class PanelCalculator {
                         data = await this.parseSimpleCSV(csvContent);
                     } else if (format === 'pge') {
                         data = await this.parsePGECSV(csvContent);
+                    } else if (format === 'pge-pv') {
+                        data = await this.parsePGEPVCSV(csvContent);
                     }
                     
                     this.log(`Processed ${data.length} valid readings from ${format} format`, 'info');
@@ -309,6 +312,85 @@ class PanelCalculator {
         
         if (data.length === 0) {
             throw new Error('No valid data found in PG&E file', { cause: errors });
+        }
+        
+        if (invalidRows > 0) {
+            throw new Error(`Found ${invalidRows} invalid rows`, { cause: errors });
+        }
+        
+        return data;
+    }
+
+    async parsePGEPVCSV(csvContent) {
+        const rows = csvContent.split('\n');
+        const data = [];
+        const errors = [];
+        let invalidRows = 0;
+        
+        // Find the header row (contains TYPE, DATE, START TIME, etc.)
+        let headerRowIndex = -1;
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i].includes('TYPE,DATE,START TIME,END TIME,IMPORT (kWh),EXPORT (kWh)')) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+        
+        if (headerRowIndex === -1) {
+            throw new Error('Invalid PG&E PV file format. Could not find header row.');
+        }
+        
+        const headers = rows[headerRowIndex].split(',');
+        const dateIndex = headers.findIndex(h => h.trim() === 'DATE');
+        const startTimeIndex = headers.findIndex(h => h.trim() === 'START TIME');
+        const importIndex = headers.findIndex(h => h.trim() === 'IMPORT (kWh)');
+        const exportIndex = headers.findIndex(h => h.trim() === 'EXPORT (kWh)');
+        
+        if (dateIndex === -1 || startTimeIndex === -1 || importIndex === -1 || exportIndex === -1) {
+            throw new Error('Invalid PG&E PV file format. Missing required columns.');
+        }
+        
+        // Parse data rows (skip header row)
+        for (let i = headerRowIndex + 1; i < rows.length; i++) {
+            const row = rows[i].trim();
+            if (!row || !row.startsWith('Electric usage')) continue;
+            
+            const columns = this.parseCSVRow(row); // Handle quoted values properly
+            const dateStr = columns[dateIndex]?.trim();
+            const timeStr = columns[startTimeIndex]?.trim();
+            const importStr = columns[importIndex]?.trim();
+            const exportStr = columns[exportIndex]?.trim();
+            
+            if (!dateStr || !timeStr || !importStr || !exportStr) {
+                errors.push(`Row ${i + 1}: Missing required values`);
+                invalidRows++;
+                continue;
+            }
+            
+            // Parse date and time (MM/DD/YY format)
+            try {
+                // Combine date and time
+                const dateTimeStr = `${dateStr} ${timeStr}`;
+                const datetime = this.parsePGEDateTime(dateTimeStr);
+                const importKwh = parseFloat(importStr);
+                const exportKwh = parseFloat(exportStr);
+                
+                if (isNaN(importKwh) || isNaN(exportKwh)) {
+                    errors.push(`Row ${i + 1}: Invalid kWh value - Import: "${importStr}", Export: "${exportStr}"`);
+                    invalidRows++;
+                    continue;
+                }
+                
+                // Use import value as the kWh value (consumption from grid)
+                data.push({ datetime, kwh: importKwh });
+            } catch (error) {
+                errors.push(`Row ${i + 1}: ${error.message}`);
+                invalidRows++;
+            }
+        }
+        
+        if (data.length === 0) {
+            throw new Error('No valid data found in PG&E PV file', { cause: errors });
         }
         
         if (invalidRows > 0) {
@@ -840,7 +922,7 @@ class PanelCalculator {
         return {
             summary: `Data spans ${daysCovered} days (${firstDate.toLocaleDateString()} to ${lastDate.toLocaleDateString()})`,
             details: [
-                `File format: ${fileFormat === 'pge' ? 'PG&E Energy Usage Export' : 'Simple CSV'}`,
+                `File format: ${fileFormat === 'pge-pv' ? 'PG&E Solar PV Export' : fileFormat === 'pge' ? 'PG&E Energy Usage Export' : 'Simple CSV'}`,
                 `First reading: ${firstDate.toLocaleString()}`,
                 `Last reading: ${lastDate.toLocaleString()}`,
                 `Total readings: ${data.length}`,
@@ -914,7 +996,14 @@ class PanelCalculator {
             this.calculateBtn.disabled = false;
 
             // Add format info to the message
-            const formatName = format === 'pge' ? 'PG&E' : 'simple';
+            let formatName;
+            if (format === 'pge') {
+                formatName = 'PG&E';
+            } else if (format === 'pge-pv') {
+                formatName = 'PG&E Solar PV';
+            } else {
+                formatName = 'simple';
+            }
             this.showInfo(`Sample data "${filename}" (${formatName} format) loaded. Click Calculate to process.`);
         } catch (error) {
             this.showError(`Error loading sample data: ${error.message}`);
@@ -946,9 +1035,16 @@ class PanelCalculator {
     }
 
     detectFileFormat(csvContent) {
-        // Check for PG&E format (has header with Name, Address, etc.)
+        // Check for PG&E PV format (has header with Name, Address, Service, etc. and IMPORT/EXPORT columns)
         if (csvContent.includes('Name,') && csvContent.includes('Address,') && 
-            csvContent.includes('Account Number,')) {
+            csvContent.includes('Account Number,') && csvContent.includes('Service,') &&
+            csvContent.includes('IMPORT') && csvContent.includes('EXPORT')) {
+            return 'pge-pv';
+        }
+        
+        // Check for standard PG&E format (has header with Name, Address, Service, etc.)
+        if (csvContent.includes('Name,') && csvContent.includes('Address,') && 
+            csvContent.includes('Account Number,') && csvContent.includes('Service,')) {
             return 'pge';
         }
         
