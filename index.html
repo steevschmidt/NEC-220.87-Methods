@@ -64,8 +64,8 @@
                     <li>Then the electric CSV file can be imported to this tool</li>
                 </ol>
                 
-                <h3>Using your own standard CSV file:</h3>
-                <p>If you have access to your hourly or 15-minute electric usage data, you can create a standard CSV file with the following format:</p>
+                <h3>Using your own simple CSV file:</h3>
+                <p>If you have access to your hourly or 15-minute electric usage data, you can create a simple CSV file with the following format:</p>
                 <ol>
                     <li>Create a CSV file with two columns: <code>DateTime</code> and <code>kWh</code></li>
                     <li>The <code>DateTime</code> column should contain timestamps in the format: <code>YYYY-MM-DD HH:MM</code> (e.g., <code>2023-01-15 14:30</code>)</li>
@@ -99,7 +99,7 @@
                         <p>Drop your CSV file here or click to upload</p>
                     </div>
                 </label>
-                <p id="uploadHint" class="upload-hint">Upload a CSV file with energy usage data. We support standard format (DateTime and kWh columns) or PG&E energy usage exports.</p>
+                <p id="uploadHint" class="upload-hint">Upload a CSV file with energy usage data. We support a simple two column format (DateTime and kWh columns) or PG&E energy usage exports.</p>
                 <div id="fileInfo" class="file-info"></div>
             </div>
 
@@ -108,10 +108,10 @@
                 <p class="sample-divider">or</p>
                 <p class="sample-header">Try running the calculator using one of these sample files:</p>
                 <div class="sample-buttons">
-                    <button class="sample-button" data-file="test4_15min_1mo.csv" data-format="standard">1 Month of 15-min Data</button>
-                    <button class="sample-button" data-file="test2_hourly_1mo.csv" data-format="standard">1 Month of Hourly Data</button>
-                    <button class="sample-button" data-file="test3_fake15_1mo.csv" data-format="standard">1 Month of Pseudo 15-min Data</button>
-                    <button class="sample-button" data-file="test5_15min_1yr.csv" data-format="standard">1 Year of 15-min Data</button>
+                    <button class="sample-button" data-file="test4_15min_1mo.csv" data-format="simple">1 Month of 15-min Data</button>
+                    <button class="sample-button" data-file="test2_hourly_1mo.csv" data-format="simple">1 Month of Hourly Data</button>
+                    <button class="sample-button" data-file="test3_fake15_1mo.csv" data-format="simple">1 Month of Pseudo 15-min Data</button>
+                    <button class="sample-button" data-file="test5_15min_1yr.csv" data-format="simple">1 Year of 15-min Data</button>
                     <button class="sample-button" data-file="PGE_test1.csv" data-format="pge">PG&E Sample 15-min Data</button>
                     <button class="sample-button" data-file="PGE_test2.csv" data-format="pge">PG&E Sample Hourly Data</button>
                 </div>
@@ -155,7 +155,7 @@
                         </span>
                     </label>
                     <select id="calculationMethod" title="Choose how to calculate peak load from meter readings">
-                        <option value="standard" title="Home Energy Analytics method - applies a 1.3x multiplier to hourly readings. Moderately conservative approach.">HEA (Apply 1.3x to hourly readings)</option>
+                        <option value="hea" title="Home Energy Analytics method - applies a 1.3x multiplier to hourly readings. Moderately conservative approach.">HEA (Apply 1.3x to hourly readings)</option>
                         <option value="nec" title="National Electrical Code method - uses raw values without adjustment for hourly readings. Least conservative approach.">NEC (No adjustment to hourly readings)</option>
                         <option value="lbnl" title="Lawrence Berkeley National Laboratory method - applies a variable adjustment based on load magnitude. Most conservative approach, providing higher safety margins.">LBNL (Variable adjustment based on load)</option>
                     </select>
@@ -255,7 +255,7 @@
                     </svg>
                     Report Issue
                 </a>
-                <span class="version-info">v1.0.0</span>
+                <span class="version-info" id="versionInfo"></span>
             </p>
         </div>
     </footer>

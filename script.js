@@ -1,6 +1,7 @@
 // Constants for calculations
-const SINGLE_READING_MULTIPLIER = 1.3;
+const HEA_SINGLE_READING_MULTIPLIER = 1.3;
 const FINAL_CAPACITY_MULTIPLIER = 1.25;
+const APP_VERSION = 'v0.1.1';
 
 function checkBrowserCompatibility() {
     const incompatibilities = [];
@@ -149,7 +150,7 @@ class PanelCalculator {
                 return;
             }
             
-            if (file.size > 5 * 1024 * 1024) { // 10MB limit
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
                 reject(new Error('File is too large. Maximum file size is 5MB.'));
                 return;
             }
@@ -164,8 +165,8 @@ class PanelCalculator {
                     
                     // Parse based on detected format
                     let data;
-                    if (format === 'standard') {
-                        data = await this.parseStandardCSV(csvContent);
+                    if (format === 'simple') {
+                        data = await this.parseSimpleCSV(csvContent);
                     } else if (format === 'pge') {
                         data = await this.parsePGECSV(csvContent);
                     }
@@ -182,7 +183,7 @@ class PanelCalculator {
         });
     }
 
-    async parseStandardCSV(csvContent) {
+    async parseSimpleCSV(csvContent) {
         const rows = csvContent.split('\n');
         const headers = rows[0].split(',');
         
@@ -486,9 +487,9 @@ class PanelCalculator {
                 
                 // For fake 15-minute data, apply additional multiplier based on method
                 if (uniqueReadings === 1) {
-                    if (calculationMethod === 'standard') {
-                        // Standard method: apply 1.3x
-                        adjustedMax *= SINGLE_READING_MULTIPLIER;
+                    if (calculationMethod === 'hea') {
+                        // HEA method: apply 1.3x
+                        adjustedMax *= HEA_SINGLE_READING_MULTIPLIER;
                     } else if (calculationMethod === 'lbnl') {
                         // LBNL method for fake 15-minute data
                         // First convert to hourly equivalent
@@ -505,9 +506,9 @@ class PanelCalculator {
                 }
             } else {
                 // Single reading (hourly data)
-                if (calculationMethod === 'standard') {
-                    // Standard method: apply 1.3x
-                    adjustedMax = hourlyMax * SINGLE_READING_MULTIPLIER;
+                if (calculationMethod === 'hea') {
+                    // HEA method: apply 1.3x
+                    adjustedMax = hourlyMax * HEA_SINGLE_READING_MULTIPLIER;
                 } else if (calculationMethod === 'lbnl') {
                     // LBNL method for hourly data
                     if (hourlyMax < 7.5) {
@@ -749,7 +750,7 @@ class PanelCalculator {
         }, 10000); // Keep error showing longer since there's more to read
     }
 
-    analyzeData(data, fileFormat = 'standard') {
+    analyzeData(data, fileFormat = 'simple') {
         // Sort data by datetime
         const sortedData = [...data].sort((a, b) => a.datetime - b.datetime);
         
@@ -839,7 +840,7 @@ class PanelCalculator {
         return {
             summary: `Data spans ${daysCovered} days (${firstDate.toLocaleDateString()} to ${lastDate.toLocaleDateString()})`,
             details: [
-                `File format: ${fileFormat === 'pge' ? 'PG&E Energy Usage Export' : 'Standard CSV'}`,
+                `File format: ${fileFormat === 'pge' ? 'PG&E Energy Usage Export' : 'Simple CSV'}`,
                 `First reading: ${firstDate.toLocaleString()}`,
                 `Last reading: ${lastDate.toLocaleString()}`,
                 `Total readings: ${data.length}`,
@@ -913,7 +914,7 @@ class PanelCalculator {
             this.calculateBtn.disabled = false;
 
             // Add format info to the message
-            const formatName = format === 'pge' ? 'PG&E' : 'standard';
+            const formatName = format === 'pge' ? 'PG&E' : 'simple';
             this.showInfo(`Sample data "${filename}" (${formatName} format) loaded. Click Calculate to process.`);
         } catch (error) {
             this.showError(`Error loading sample data: ${error.message}`);
@@ -951,10 +952,10 @@ class PanelCalculator {
             return 'pge';
         }
         
-        // Check for standard format (has DateTime and kWh columns)
+        // Check for simple format (has DateTime and kWh columns)
         const firstLine = csvContent.split('\n')[0].toLowerCase();
         if (firstLine.includes('datetime') && firstLine.includes('kwh')) {
-            return 'standard';
+            return 'simple';
         }
         
         // Unknown format
@@ -1083,7 +1084,7 @@ System Information:
 - Panel Size: ${panelSize} A
 - Voltage: ${voltage} V
 - Calculation Method: ${method}
-- App Version: v1.0.0
+- App Version: ${APP_VERSION}
 - Date: ${new Date().toISOString()}
 
 Steps to Reproduce:
@@ -1103,6 +1104,12 @@ document.addEventListener('DOMContentLoaded', () => {
     checkBrowserCompatibility();
     initializeInstructionsToggle();
     new PanelCalculator();
+    
+    // Set version number
+    const versionInfo = document.getElementById('versionInfo');
+    if (versionInfo) {
+        versionInfo.textContent = APP_VERSION;
+    }
     
     // Add event listener for print button
     const printBtn = document.getElementById('printResultsBtn');

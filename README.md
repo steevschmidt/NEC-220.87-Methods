@@ -43,19 +43,29 @@ These changes will increase a home's electric load, making it necessary to deter
 
 ## Calculation Methods
 
-The repository implements three different calculation methods:
+To conform to NEC 220.87 code, data must be collected for a minimum period of 30 days. 
 
-1. **HEA (Home Energy Analytics)**: 
+If less than one year of data is used, all of the following shall apply:
+1. [TBD!] Data shall include by measurement or calculation seasonal or periodic loads outside the measurement period.
+2. Data shall represent the total demand of connected loads considering any parallel power production sources.
+
+Quarter hour (15 minute) readings are not adjusted. The repository implements three different methods for handling hourly readings:
+
+1. **NEC (National Electrical Code)**:
+   - No adjustment to hourly readings specified in code (as of 2025)
+   - Least conservative approach
+
+2. **HEA (Home Energy Analytics)**: 
    - Applies a 1.3x multiplier to hourly readings
    - Moderately conservative approach
-
-2. **NEC (National Electrical Code)**:
-   - No adjustment to hourly readings
-   - Least conservative approach
 
 3. **LBNL (Lawrence Berkeley National Laboratory)**:
    - Variable adjustment based on load magnitude
    - Most conservative approach, providing higher safety margins
+   - Details: 60 minute data shall be adjusted as follows:
+     1. Values less than or equal to 7.5 kVA shall be multiplied by 140 percent plus 2.2 kVA
+     1. Values greater than 7.5 kVA shall have 5.2 kVA added
+
 
 ## How to Use
 
