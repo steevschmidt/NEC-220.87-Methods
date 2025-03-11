@@ -476,13 +476,13 @@ select:focus {
 
 /* Add these styles to your styles.css file */
 .info-message {
-    background-color: #e3f2fd;
-    border: 1px solid #bbdefb;
-    color: #1565c0;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-    border-radius: 0.5rem;
-    font-weight: 500;
+    background-color: #e0f2fe;
+    border-left: 4px solid #0ea5e9;
+    color: #0c4a6e;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0.25rem;
+    font-size: 0.9rem;
 }
 
 .file-info.info {
@@ -822,4 +822,52 @@ select:focus {
 
 #reportFormatBtn:hover {
     background-color: #374151;
+}
+
+.method-info-notification {
+    animation: fadeIn 0.5s ease-out;
+    margin: 0.5rem 0 1rem;
+    position: relative;
+}
+
+.method-info-notification .info-message {
+    background-color: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    color: #1e40af;
+    padding-right: 30px; /* Make room for the close button */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.method-info-notification .info-message strong {
+    font-weight: 600;
+}
+
+.close-notification {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #1e40af;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.close-notification:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.file-info + .method-info-notification {
+    margin-top: 10px;
+    margin-bottom: 20px;
+    z-index: 10;
 } 

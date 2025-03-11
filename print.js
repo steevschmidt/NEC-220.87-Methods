@@ -19,11 +19,17 @@ function openPrintablePage() {
     const voltageElement = document.getElementById('panelVoltage');
     const voltage = voltageElement ? voltageElement.value : '240';
     
+    // Check if calculation method is applicable (not for pure 15-minute data)
     const methodElement = document.getElementById('calculationMethod');
-    let method = 'HEA';
-    if (methodElement) {
+    const methodSelectorContainer = document.getElementById('methodSelectorContainer');
+    let methodInfo = '';
+    let method = '';
+    
+    // Only include calculation method if it's being used (visible)
+    if (methodElement && methodSelectorContainer && !methodSelectorContainer.classList.contains('hidden')) {
         const selectedOption = methodElement.options[methodElement.selectedIndex];
-        method = selectedOption ? selectedOption.text : 'HEA';
+        method = selectedOption ? selectedOption.text : '';
+        methodInfo = `<p><strong>Method:</strong> ${method}</p>`;
     }
     
     const fileInput = document.getElementById('csvFile');
@@ -244,7 +250,7 @@ function openPrintablePage() {
                     <h2>Input Parameters</h2>
                     <p><strong>Panel Size:</strong> ${panelSize} Amps</p>
                     <p><strong>Voltage:</strong> ${voltage} Volts</p>
-                    <p><strong>Method:</strong> ${method}</p>
+                    ${methodInfo}
                     <p><strong>File:</strong> ${fileName}</p>
                     ${dataInfoSummary ? `<p class="data-summary">${dataInfoSummary}</p>` : ''}
                 </div>

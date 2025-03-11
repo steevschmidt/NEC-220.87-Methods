@@ -146,7 +146,7 @@
                         <option value="208">208 Volts</option>
                     </select>
                 </div>
-                <div class="input-group span-full">
+                <div id="methodSelectorContainer" class="input-group span-full hidden">
                     <label for="calculationMethod">
                         Calculation Method
                         <span class="help-icon" title="Select the method used to calculate peak load from hourly or pseudo-15-min meter readings. NEC is the least conservative (smallest safety margin), HEA is moderately conservative, and LBNL is the most conservative (largest safety margin).">
@@ -156,9 +156,9 @@
                         </span>
                     </label>
                     <select id="calculationMethod" title="Choose how to calculate peak load from meter readings">
-                        <option value="hea" title="Home Energy Analytics method - applies a 1.3x multiplier to hourly readings. Moderately conservative approach.">HEA (Apply 1.3x to hourly readings)</option>
-                        <option value="nec" title="National Electrical Code method - uses raw values without adjustment for hourly readings. Least conservative approach.">NEC (No adjustment to hourly readings)</option>
                         <option value="lbnl" title="Lawrence Berkeley National Laboratory method - applies a variable adjustment based on load magnitude. Most conservative approach, providing higher safety margins.">LBNL (Variable adjustment based on load)</option>
+                        <option value="hea" title="Home Energy Analytics method - applies a 1.3x multiplier to hourly readings. Moderately conservative approach.">HEA (130% adjustment to hourly readings)</option>
+                        <option value="nec" title="National Electrical Code method - uses raw values without adjustment for hourly readings. Least conservative approach.">NEC (No adjustment to hourly readings)</option>
                     </select>
                 </div>
             </div>

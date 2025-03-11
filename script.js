@@ -56,6 +56,13 @@ class PanelCalculator {
         this.calculateBtn = document.getElementById('calculateBtn');
         this.resultsDiv = document.getElementById('results');
         this.uploadArea = document.querySelector('.upload-area');
+        this.methodSelectorContainer = document.getElementById('methodSelectorContainer');
+        
+        // Data state
+        this.currentData = null;
+        this.currentFileFormat = null;
+        this.dataAnalysis = null;
+        this.needsMethodSelection = false;
         
         // Bind event listeners
         this.initializeEventListeners();
@@ -81,16 +88,21 @@ class PanelCalculator {
         this.uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
         this.uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
         
-        // Calculate button
-        this.calculateBtn.addEventListener('click', () => {
-            this.processData();
+        // Calculate button - ensure this is the only place that triggers calculation
+        this.calculateBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent any default behavior
+            console.log('Calculate button clicked');
+            this.processCalculation();
         });
     }
 
     handleFileSelect(event) {
         const file = event.target.files[0];
         if (file) {
-            this.validateAndUpdateUI(file);
+            // Clear any previous results
+            this.clearResults();
+            
+            this.validateAndProcessFile(file);
         }
     }
 
@@ -107,24 +119,23 @@ class PanelCalculator {
         
         const file = event.dataTransfer.files[0];
         if (file) {
+            // Clear any previous results
+            this.clearResults();
+            
             this.fileInput.files = event.dataTransfer.files;
-            this.validateAndUpdateUI(file);
+            this.validateAndProcessFile(file);
         }
     }
 
-    validateAndUpdateUI(file) {
+    async validateAndProcessFile(file) {
         if (file.type !== 'text/csv') {
             this.showError('Please upload a CSV file');
             return;
         }
+        
         this.fileInfo.textContent = `File selected: ${file.name}`;
-        this.calculateBtn.disabled = false;
-    }
-
-    async processData() {
+        
         try {
-            const file = this.fileInput.files[0];
-            
             // Read file content to detect format
             const fileContent = await this.readFileContent(file);
             const fileFormat = this.detectFileFormat(fileContent);
@@ -132,16 +143,96 @@ class PanelCalculator {
             // Parse data based on detected format
             const data = await this.parseCSV(file);
             
-            // Add data analysis with format information
+            // Analyze the data
             const analysis = this.analyzeData(data, fileFormat);
+            
+            // Store the data and analysis for later use
+            this.currentData = data;
+            this.currentFileFormat = fileFormat;
+            this.dataAnalysis = analysis;
+            
+            // Update UI based on data analysis
+            this.updateUIBasedOnDataAnalysis(analysis);
+            
+            // Show data info
             this.showDataInfo(analysis.summary, analysis.details, analysis.warnings);
             
-            const results = this.calculatePanelCapacity(data);
-            this.displayResults(results);
-            this.createChart(data);
+            // Enable calculate button
+            this.calculateBtn.disabled = false;
+            
         } catch (error) {
             this.showError(error.message, error.details);
         }
+    }
+    
+    updateUIBasedOnDataAnalysis(analysis) {
+        // Check if we need to show the method selector
+        const hasHourlyData = analysis.dataTypes.includes("Hourly");
+        const hasFake15MinData = analysis.dataTypes.includes("Fake 15-minute");
+        
+        this.needsMethodSelection = hasHourlyData || hasFake15MinData;
+        
+        // Show/hide method selector based on data type
+        if (this.needsMethodSelection) {
+            this.methodSelectorContainer.classList.remove('hidden');
+            
+            // Remove any existing notification
+            const existingNotification = document.querySelector('.method-info-notification');
+            if (existingNotification) {
+                existingNotification.parentNode.removeChild(existingNotification);
+            }
+            
+            // Show notification about method selection
+            const methodInfo = document.createElement('div');
+            methodInfo.className = 'method-info-notification';
+            methodInfo.innerHTML = `
+                <div class="info-message">
+                    <strong>Hourly or pseudo-15-minute data detected.</strong> 
+                    Please select a calculation method for this type of data.
+                    <button class="close-notification">×</button>
+                </div>
+            `;
+            
+            // Insert after file info instead of method selector
+            this.fileInfo.parentNode.insertBefore(
+                methodInfo, 
+                this.fileInfo.nextSibling
+            );
+            
+            // Add close button handler
+            const closeButton = methodInfo.querySelector('.close-notification');
+            if (closeButton) {
+                closeButton.addEventListener('click', () => {
+                    console.log('Close button clicked');
+                    if (methodInfo.parentNode) {
+                        methodInfo.parentNode.removeChild(methodInfo);
+                    }
+                });
+            }
+        } else {
+            this.methodSelectorContainer.classList.add('hidden');
+        }
+    }
+
+    async processCalculation() {
+        console.log('processCalculation called');
+        try {
+            if (!this.currentData) {
+                throw new Error('No data available. Please upload a CSV file first.');
+            }
+            
+            const results = this.calculatePanelCapacity(this.currentData);
+            this.displayResults(results);
+            this.createChart(this.currentData);
+        } catch (error) {
+            this.showError(error.message, error.details);
+        }
+    }
+
+    async processData() {
+        // This method is kept for backward compatibility
+        // but now just calls processCalculation
+        this.processCalculation();
     }
 
     async parseCSV(file) {
@@ -932,10 +1023,10 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
         });
 
         // Determine data type
-        let dataType = [];
-        if (hasHourlyData) dataType.push("Hourly");
-        if (has15MinData) dataType.push("15-minute");
-        if (hasFake15MinData) dataType.push("Fake 15-minute");
+        let dataTypes = [];
+        if (hasHourlyData) dataTypes.push("Hourly");
+        if (has15MinData) dataTypes.push("15-minute");
+        if (hasFake15MinData) dataTypes.push("Fake 15-minute");
 
         // Add warnings based on data type and duration
         if (has15MinData && !hasHourlyData && !hasFake15MinData) {
@@ -952,7 +1043,14 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
         
         // Get the calculation method name
         const methodElement = document.getElementById('calculationMethod');
-        const methodName = methodElement.options[methodElement.selectedIndex].text;
+        let methodName = "Not applicable";
+        let methodDetail = "";
+        
+        // Only include calculation method if it's being used (visible)
+        if (methodElement && !this.methodSelectorContainer.classList.contains('hidden')) {
+            methodName = methodElement.options[methodElement.selectedIndex].text;
+            methodDetail = `Calculation method: ${methodName}`;
+        }
         
         // Add warnings for suspicious data patterns
         if (maxKwh > 50) {
@@ -977,15 +1075,19 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
                 `First reading: ${firstDate.toLocaleString()}`,
                 `Last reading: ${lastDate.toLocaleString()}`,
                 `Total readings: ${data.length}`,
-                `Data types detected: ${dataType.join(", ") || "Unknown"}`,
+                `Data types detected: ${dataTypes.join(", ") || "Unknown"}`,
                 `Average readings per hour: ${(data.length / Object.keys(hourlyGroups).length).toFixed(1)}`,
                 `Average readings per day: ${(data.length / daysCovered).toFixed(1)}`,
                 `Number of hours with data: ${Object.keys(hourlyGroups).length}`,
                 `Peak reading(s): ${peakReadings}`,
-                `Calculation method: ${methodName}`,
+                methodDetail,
                 ...(warnings.length > 0 ? warnings : [])
-            ],
-            warnings
+            ].filter(item => item !== ""),
+            warnings,
+            dataTypes,
+            hasHourlyData,
+            has15MinData,
+            hasFake15MinData
         };
     }
 
@@ -1026,6 +1128,9 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
 
     async loadSampleData(filename) {
         try {
+            // Clear any previous results
+            this.clearResults();
+            
             // Get format from button data attribute if available
             const button = document.querySelector(`.sample-button[data-file="${filename}"]`);
             const format = button ? button.dataset.format : null;
@@ -1042,9 +1147,8 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
             dataTransfer.items.add(file);
             this.fileInput.files = dataTransfer.files;
             
-            // Update UI
-            this.fileInfo.textContent = `File selected: ${filename}`;
-            this.calculateBtn.disabled = false;
+            // Process the file
+            this.validateAndProcessFile(file);
 
             // Add format info to the message
             let formatName;
@@ -1152,12 +1256,21 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
             // Get input parameters
             const panelSize = document.getElementById('panelSize').value;
             const voltage = document.getElementById('panelVoltage').value;
+            
+            // Check if calculation method is applicable (not for pure 15-minute data)
             const methodElement = document.getElementById('calculationMethod');
-            const method = methodElement.options[methodElement.selectedIndex].text;
+            let methodInfo = "";
+            
+            // Only include calculation method if it's being used (visible)
+            if (methodElement && !this.methodSelectorContainer.classList.contains('hidden')) {
+                const method = methodElement.options[methodElement.selectedIndex].text;
+                methodInfo = `Calculation Method,${method}\n`;
+            }
             
             // Get data info from the DOM if available
             let dataPeriod = "Not available";
             let dataCount = "Not available";
+            let dataTypes = "Not available";
             
             // Try to extract data period from the info summary
             const infoSummary = document.querySelector('.info-summary');
@@ -1170,11 +1283,14 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
                 }
             }
             
-            // Try to extract reading count from the info details
+            // Try to extract reading count and data types from the info details
             const infoDetails = document.querySelectorAll('.info-item');
             infoDetails.forEach(item => {
                 if (item.textContent.includes('Total readings:')) {
                     dataCount = item.textContent.replace('Total readings:', '').trim();
+                }
+                if (item.textContent.includes('Data types detected:')) {
+                    dataTypes = item.textContent.replace('Data types detected:', '').trim();
                 }
             });
             
@@ -1183,13 +1299,14 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
                 `Date,${new Date().toLocaleDateString()}`,
                 `Panel Size,${panelSize} Amps`,
                 `Panel Voltage,${voltage} Volts`,
-                `Calculation Method,${method}`,
+                methodInfo,
                 `Peak Power,${peakKw} kW`,
                 `Unused Capacity,${unusedKw} kW`,
                 `Available Capacity,${availableKw} kW`,
                 `Data Period,${dataPeriod}`,
-                `Number of Readings,${dataCount}`
-            ].join('\n');
+                `Number of Readings,${dataCount}`,
+                `Data Types,${dataTypes}`
+            ].filter(line => line !== "").join('\n');
             
             // Create download link
             const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -1242,6 +1359,44 @@ Steps to Reproduce:
                 const mailtoUrl = `mailto:steve@hea.com?subject=Panel%20Calculator%20Issue%20Report&body=${encodeURIComponent(body)}`;
                 reportLink.href = mailtoUrl;
             });
+        }
+    }
+
+    // Add a method to clear results
+    clearResults() {
+        // Hide the results section
+        if (this.resultsDiv) {
+            this.resultsDiv.classList.add('hidden');
+            this.resultsDiv.classList.remove('fade-in');
+        }
+        
+        // Clear any data info
+        const dataInfo = document.getElementById('dataInfo');
+        if (dataInfo) {
+            dataInfo.innerHTML = '';
+        }
+        
+        // Reset chart if it exists
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+        }
+        
+        // Remove any existing method selection notification
+        const existingNotification = document.querySelector('.method-info-notification');
+        if (existingNotification) {
+            existingNotification.parentNode.removeChild(existingNotification);
+        }
+        
+        // Hide method selector
+        if (this.methodSelectorContainer) {
+            this.methodSelectorContainer.classList.add('hidden');
+        }
+        
+        // Hide export button
+        const exportBtn = document.getElementById('exportResultsBtn');
+        if (exportBtn) {
+            exportBtn.classList.add('hidden');
         }
     }
 }
