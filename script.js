@@ -1,5 +1,5 @@
 // Constants for version and calculations
-const APP_VERSION = 'v0.1.3';
+const APP_VERSION = 'v0.2.0';
 const HEA_SINGLE_READING_MULTIPLIER = 1.3;
 const FINAL_CAPACITY_MULTIPLIER = 1.25;
 
