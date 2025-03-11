@@ -67,6 +67,7 @@ This directory contains test files for validating the NEC 220.87 panel capacity 
 
 ### pge_15min_1mo.csv
 * PG&E format with 15-minute interval data
+* Contains one or more hours where 15 minute intervals are identical (identified as "fake" 15 minute data)
 * 1 month of data
 * Contains Start Time, End Time, Usage, Cost, and Notes columns
 * Tests parsing of PG&E format with 15-minute intervals
