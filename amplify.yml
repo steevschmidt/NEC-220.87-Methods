@@ -9,4 +9,13 @@ frontend:
     files:
       - '**/*'
   cache:
-    paths: [] 
+    paths: []
+  customHeaders:
+    - pattern: '**/*'
+      headers:
+        - key: 'Access-Control-Allow-Origin'
+          value: '*'
+        - key: 'Access-Control-Allow-Methods'
+          value: 'GET, OPTIONS'
+        - key: 'Access-Control-Allow-Headers'
+          value: 'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token' 

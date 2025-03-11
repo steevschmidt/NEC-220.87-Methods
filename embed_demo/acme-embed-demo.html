@@ -522,13 +522,13 @@
                 const calculationMethod = calculationMethodSelect.value;
                 
                 // Update iframe src with query parameters
-                calculatorIframe.src = `index.html?panelSize=${panelSize}&panelVoltage=${panelVoltage}&calculationMethod=${calculationMethod}`;
+                calculatorIframe.src = `https://panel.hea.com/index.html?panelSize=${panelSize}&panelVoltage=${panelVoltage}&calculationMethod=${calculationMethod}`;
             });
             
             // Listen for messages from the iframe
             window.addEventListener('message', function(event) {
-                // Make sure the message is from our calculator
-                if (event.origin !== window.location.origin) return;
+                // IMPORTANT: Always verify the origin of the message
+                if (event.origin !== "https://panel.hea.com") return;
                 
                 // Check if the message contains results data
                 if (event.data && event.data.type === 'calculationResults') {
