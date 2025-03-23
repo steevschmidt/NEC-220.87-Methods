@@ -30,6 +30,14 @@ document.addEventListener('DOMContentLoaded', function() {
             calculationMethodSelect.value = urlParams.get('calculationMethod');
         }
     }
+
+    // Handle hideHeader parameter
+    if (urlParams.has('hideHeader') && urlParams.get('hideHeader') === 'true') {
+        const header = document.querySelector('header');
+        if (header) {
+            header.style.display = 'none';
+        }
+    }
     
     // Auto-calculate if all required parameters are provided and autoCalculate is true
     if (urlParams.has('autoCalculate') && urlParams.get('autoCalculate') === 'true') {

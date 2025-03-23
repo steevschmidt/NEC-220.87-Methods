@@ -39,6 +39,21 @@ You can pre-configure the calculator by passing parameters in the URL:
 | calculationMethod | Method used to calculate peak load | hea, nec, lbnl | hea |
 | sampleFile | Name of sample file to load | test4_15min_1mo.csv, test2_hourly_1mo.csv, etc. | - |
 | autoCalculate | Automatically calculate with sample data | true, false | false |
+| hideHeader | Hide the header section | true, false | false |
+
+## Example Usage
+
+Here's an example of embedding the calculator with multiple parameters:
+
+```html
+<iframe 
+  src="https://panel.hea.com/index.html?panelSize=200&panelVoltage=240&calculationMethod=hea&hideHeader=true" 
+  width="100%" 
+  height="800px" 
+  style="border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" 
+  title="Panel Capacity Calculator">
+</iframe>
+```
 
 ## Receiving Results
 

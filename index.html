@@ -42,52 +42,52 @@
             <p>Developed under this <a href="https://www.energizeinnovation.fund/projects/decision-tool-electrify-homes-limited-electrical-panel-capacity#tab-overview" target="_blank">Grant from the California Energy Commission</a>.</p>
         </header>
 
-        <!-- Instructions Section -->
-        <div class="instructions-container">
-            <div class="basic-instructions">
-                <p>Import your smart meter data and enter your panel specifications below</p>
-                <button id="showDetailedInstructions" class="instructions-toggle">
-                    Need help getting your data? Click here
-                </button>
-            </div>
-            <div id="detailedInstructions" class="detailed-instructions hidden">
-                <h3>How to get your PG&E smart meter data:</h3>
-                <ol>
-                    <li>Log into <a href="https://www.pge.com" target="_blank">pge.com</a></li>
-                    <li>Click on "Energy Usage Details"</li>
-                    <li>Click the "Green Button" icon at bottom right</li>
-                    <li>Select "Export usage for a range of days"</li>
-                    <li>Enter a period of at least 30 days and preferably 1 year</li>
-                    <li>Select Format "CSV"</li>
-                    <li>Select Export</li>
-                    <li>This downloads a zip file which must then be unzipped</li>
-                    <li>Then the electric CSV file can be imported to this tool</li>
-                </ol>
-                
-                <h3>Using your own simple CSV file:</h3>
-                <p>If you have access to your hourly or 15-minute electric usage data, you can create a simple CSV file with the following format:</p>
-                <ol>
-                    <li>Create a CSV file with two columns: <code>DateTime</code> and <code>kWh</code></li>
-                    <li>The <code>DateTime</code> column should contain timestamps in the format: <code>YYYY-MM-DD HH:MM</code> (e.g., <code>2023-01-15 14:30</code>)</li>
-                    <li>The <code>kWh</code> column should contain the energy usage in kilowatt-hours for each time interval</li>
-                    <li>Include a header row with the column names: <code>DateTime,kWh</code></li>
-                    <li>Ensure readings are in chronological order</li>
-                    <li>For best results, include at least 30 days of data, preferably a full year</li>
-                    <li>Data intervals can be 15-minute or hourly</li>
-                </ol>
-                <p>Example of the first few rows of a valid CSV file:</p>
-                <pre>DateTime,kWh
+        <!-- File Upload Section -->
+        <div class="card">
+            <h2>Step 1: Upload Your Data</h2>
+            <div class="instructions-container">
+                <div class="basic-instructions">
+                    <p>Import your smart meter data below</p>
+                    <button id="showDetailedInstructions" class="instructions-toggle">
+                        Need help getting your data? Click here
+                    </button>
+                </div>
+                <div id="detailedInstructions" class="detailed-instructions hidden">
+                    <h3>How to get your PG&E smart meter data:</h3>
+                    <ol>
+                        <li>Log into <a href="https://www.pge.com" target="_blank">pge.com</a></li>
+                        <li>Click on "Energy Usage Details"</li>
+                        <li>Click the "Green Button" icon at bottom right</li>
+                        <li>Select "Export usage for a range of days"</li>
+                        <li>Enter a period of at least 30 days and preferably 1 year</li>
+                        <li>Select Format "CSV"</li>
+                        <li>Select Export</li>
+                        <li>This downloads a zip file which must then be unzipped</li>
+                        <li>Then the electric CSV file can be imported to this tool</li>
+                    </ol>
+                    
+                    <h3>Using your own simple CSV file:</h3>
+                    <p>If you have access to your hourly or 15-minute electric usage data, you can create a simple CSV file with the following format:</p>
+                    <ol>
+                        <li>Create a CSV file with two columns: <code>DateTime</code> and <code>kWh</code></li>
+                        <li>The <code>DateTime</code> column should contain timestamps in the format: <code>YYYY-MM-DD HH:MM</code> (e.g., <code>2023-01-15 14:30</code>)</li>
+                        <li>The <code>kWh</code> column should contain the energy usage in kilowatt-hours for each time interval</li>
+                        <li>Include a header row with the column names: <code>DateTime,kWh</code></li>
+                        <li>Ensure readings are in chronological order</li>
+                        <li>For best results, include at least 30 days of data, preferably a full year</li>
+                        <li>Data intervals can be 15-minute or hourly</li>
+                    </ol>
+                    <p>Example of the first few rows of a valid CSV file:</p>
+                    <pre>DateTime,kWh
 2023-01-01 00:00,0.45
 2023-01-01 01:00,0.38
 2023-01-01 02:00,0.41
 ...</pre>
-                
-                <button id="hideDetailedInstructions" class="instructions-toggle">Hide instructions</button>
+                    
+                    <button id="hideDetailedInstructions" class="instructions-toggle">Hide instructions</button>
+                </div>
             </div>
-        </div>
 
-        <!-- Main Form -->
-        <div class="card">
             <!-- File Upload -->
             <div class="upload-container">
                 <input type="file" id="csvFile" accept=".csv" class="hidden">
@@ -103,7 +103,7 @@
                 <div id="fileInfo" class="file-info"></div>
             </div>
 
-            <!-- Add this after the upload-container div -->
+            <!-- Sample Data -->
             <div class="sample-data-container">
                 <p class="sample-divider">or</p>
                 <p class="sample-header">Try running the calculator using one of these sample files:</p>
@@ -112,13 +112,18 @@
                     <button class="sample-button" data-file="test2_hourly_1mo.csv" data-format="simple">1 Month of Hourly Data</button>
                     <button class="sample-button" data-file="test3_fake15_1mo.csv" data-format="simple">1 Month of Pseudo 15-min Data</button>
                     <button class="sample-button" data-file="test5_15min_1yr.csv" data-format="simple">1 Year of 15-min Data</button>
+                    <!-- PG&E Sample Data (currently hidden)
                     <button class="sample-button" data-file="PGE_test1.csv" data-format="pge">PG&E Sample 15-min Data</button>
                     <button class="sample-button" data-file="PGE_test2.csv" data-format="pge">PG&E Sample Hourly Data</button>
                     <button class="sample-button" data-file="PGE_testPV.csv" data-format="pge-pv">PG&E Solar PV Sample</button>
+                    -->
                 </div>
             </div>
+        </div>
 
-            <!-- Panel Specifications -->
+        <!-- Panel Specifications Section -->
+        <div class="card">
+            <h2>Step 2: Panel Specifications</h2>
             <div class="input-grid">
                 <div class="input-group">
                     <label for="panelSize">
@@ -162,8 +167,11 @@
                     </select>
                 </div>
             </div>
+        </div>
 
-            <!-- Calculate Button -->
+        <!-- Calculate Button Section -->
+        <div class="card">
+            <h2>Step 3: Calculate</h2>
             <div class="button-container">
                 <button id="calculateBtn" class="primary-button" disabled>Calculate</button>
             </div>
