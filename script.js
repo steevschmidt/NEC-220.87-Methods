@@ -1,5 +1,6 @@
 // Constants for version and calculations
-const APP_VERSION = 'v0.2.0';
+let APP_VERSION = 'v0.3.1'; // Initial value, may be updated by version.js
+window.APP_VERSION = APP_VERSION; // Make it accessible globally
 const HEA_SINGLE_READING_MULTIPLIER = 1.3;
 const FINAL_CAPACITY_MULTIPLIER = 1.25;
 
