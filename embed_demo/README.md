@@ -40,6 +40,7 @@ You can pre-configure the calculator by passing parameters in the URL:
 | sampleFile | Name of sample file to load | test4_15min_1mo.csv, test2_hourly_1mo.csv, etc. | - |
 | autoCalculate | Automatically calculate with sample data | true, false | false |
 | hideHeader | Hide the header section | true, false | false |
+| seasonalLoad | Additional load (in watts) for seasonal adjustments | Any positive number | 5000 |
 
 ## Example Usage
 

@@ -19,6 +19,18 @@ function openPrintablePage() {
     const voltageElement = document.getElementById('panelVoltage');
     const voltage = voltageElement ? voltageElement.value : '240';
     
+    // Check for seasonal load
+    const seasonalLoadElement = document.getElementById('seasonalLoad');
+    const seasonalLoadContainer = document.getElementById('seasonalLoadContainer');
+    let seasonalLoad = '';
+    let seasonalLoadInfo = '';
+    
+    // Only include seasonal load if it's being used (visible)
+    if (seasonalLoadElement && seasonalLoadContainer && !seasonalLoadContainer.classList.contains('hidden')) {
+        seasonalLoad = seasonalLoadElement.value;
+        seasonalLoadInfo = `<p><strong>Seasonal Load:</strong> ${seasonalLoad} Watts</p>`;
+    }
+    
     // Check if calculation method is applicable (not for pure 15-minute data)
     const methodElement = document.getElementById('calculationMethod');
     const methodSelectorContainer = document.getElementById('methodSelectorContainer');
@@ -250,6 +262,7 @@ function openPrintablePage() {
                     <h2>Input Parameters</h2>
                     <p><strong>Panel Size:</strong> ${panelSize} Amps</p>
                     <p><strong>Voltage:</strong> ${voltage} Volts</p>
+                    ${seasonalLoadInfo}
                     ${methodInfo}
                     <p><strong>File:</strong> ${fileName}</p>
                     ${dataInfoSummary ? `<p class="data-summary">${dataInfoSummary}</p>` : ''}
@@ -259,6 +272,7 @@ function openPrintablePage() {
                     <div class="result-box">
                         <h3>Peak Power</h3>
                         <div class="result-value">${peakKw} kW / ${peakAmps} A</div>
+                        ${seasonalLoad ? `<div class="info-note">*Includes seasonal load adjustment of ${(parseFloat(seasonalLoad)/1000).toFixed(2)} kW</div>` : ''}
                     </div>
                     <div class="result-box">
                         <h3>Unused Capacity</h3>

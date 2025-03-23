@@ -212,6 +212,53 @@ class PanelCalculator {
         } else {
             this.methodSelectorContainer.classList.add('hidden');
         }
+
+        // Handle seasonal load input based on data duration
+        const seasonalLoadContainer = document.getElementById('seasonalLoadContainer');
+        if (analysis.daysCovered < 365) {
+            // Show seasonal load input when data covers less than a year
+            seasonalLoadContainer.classList.remove('hidden');
+            
+            // Add a notification about seasonal load
+            const existingSeasonalNotification = document.querySelector('.seasonal-info-notification');
+            if (!existingSeasonalNotification) {
+                const seasonalInfo = document.createElement('div');
+                seasonalInfo.className = 'seasonal-info-notification';
+                seasonalInfo.innerHTML = `
+                    <div class="info-message">
+                        <strong>Less than a year of data detected.</strong> 
+                        Seasonal load will be added to account for potential seasonal variations.
+                        <button class="close-notification">×</button>
+                    </div>
+                `;
+                
+                // Insert after method info or file info
+                const insertAfter = document.querySelector('.method-info-notification') || this.fileInfo;
+                insertAfter.parentNode.insertBefore(
+                    seasonalInfo, 
+                    insertAfter.nextSibling
+                );
+                
+                // Add close button handler
+                const closeButton = seasonalInfo.querySelector('.close-notification');
+                if (closeButton) {
+                    closeButton.addEventListener('click', () => {
+                        if (seasonalInfo.parentNode) {
+                            seasonalInfo.parentNode.removeChild(seasonalInfo);
+                        }
+                    });
+                }
+            }
+        } else {
+            // Hide seasonal load input when data covers a full year or more
+            seasonalLoadContainer.classList.add('hidden');
+            
+            // Remove any existing seasonal notification
+            const existingSeasonalNotification = document.querySelector('.seasonal-info-notification');
+            if (existingSeasonalNotification) {
+                existingSeasonalNotification.parentNode.removeChild(existingSeasonalNotification);
+            }
+        }
     }
 
     async processCalculation() {
@@ -592,8 +639,19 @@ class PanelCalculator {
                 throw new Error('Error calculating peak load');
             }
 
-            // Calculate remaining capacity
-            const peakPowerKw = peakHourlyLoad;
+            // Check if we need to add seasonal load
+            let peakPowerKw = peakHourlyLoad;
+            const needsSeasonalLoad = this.dataAnalysis && this.dataAnalysis.daysCovered < 365;
+            
+            if (needsSeasonalLoad) {
+                // Get seasonal load value in watts and convert to kW
+                const seasonalLoad = parseFloat(document.getElementById('seasonalLoad').value) / 1000;
+                if (!isNaN(seasonalLoad)) {
+                    peakPowerKw += seasonalLoad;
+                    console.log(`Added seasonal load of ${seasonalLoad} kW. New peak: ${peakPowerKw} kW`);
+                }
+            }
+            
             const peakPowerAmps = (peakPowerKw * 1000) / panelVoltage;
             
             // Calculate total panel capacity in kW
@@ -614,7 +672,8 @@ class PanelCalculator {
                 unusedCapacityAmps,
                 availableCapacityKw,
                 availableCapacityAmps,
-                hourlyData
+                hourlyData,
+                seasonalLoadApplied: needsSeasonalLoad
             };
         } catch (error) {
             this.log('Calculation error: ' + error, 'error');
@@ -702,52 +761,79 @@ class PanelCalculator {
     }
 
     displayResults(results) {
-        // Update result elements
+        if (!results) return;
+        
+        // Update display elements with results
         document.getElementById('peakKw').textContent = results.peakPowerKw.toFixed(2);
         document.getElementById('peakAmps').textContent = results.peakPowerAmps.toFixed(1);
         
-        // Update unused capacity elements
-        const unusedKwElement = document.getElementById('unusedKw');
-        const unusedAmpsElement = document.getElementById('unusedAmps');
+        document.getElementById('unusedKw').textContent = results.unusedCapacityKw.toFixed(2);
+        document.getElementById('unusedAmps').textContent = results.unusedCapacityAmps.toFixed(1);
         
-        unusedKwElement.textContent = results.unusedCapacityKw.toFixed(2);
-        unusedAmpsElement.textContent = results.unusedCapacityAmps.toFixed(1);
+        document.getElementById('availableKw').textContent = results.availableCapacityKw.toFixed(2);
+        document.getElementById('availableAmps').textContent = results.availableCapacityAmps.toFixed(1);
         
-        // Add negative class if unused capacity is negative
-        const unusedValueContainer = unusedKwElement.closest('.result-value');
-        if (results.unusedCapacityKw < 0) {
-            unusedValueContainer.classList.add('negative-value');
-        } else {
-            unusedValueContainer.classList.remove('negative-value');
-        }
-        
-        const availableKwElement = document.getElementById('availableKw');
-        const availableAmpsElement = document.getElementById('availableAmps');
-        
-        availableKwElement.textContent = results.availableCapacityKw.toFixed(2);
-        availableAmpsElement.textContent = results.availableCapacityAmps.toFixed(1);
-        
-        // Add negative class if available capacity is negative
-        const availableValueContainer = availableKwElement.closest('.result-value');
-        if (results.availableCapacityKw < 0) {
-            availableValueContainer.classList.add('negative-value');
-        } else {
-            availableValueContainer.classList.remove('negative-value');
-        }
-        
-        // Show results section with animation
+        // Show results section
         this.resultsDiv.classList.remove('hidden');
-        this.resultsDiv.classList.add('fade-in');
-
-        // Add export button to results section
+        
+        // Scroll to results
+        this.scrollToResults();
+        
+        // Show seasonal load note if applied
+        const existingSeasonalNote = document.querySelector('.seasonal-load-applied');
+        if (existingSeasonalNote) {
+            existingSeasonalNote.parentNode.removeChild(existingSeasonalNote);
+        }
+        
+        if (results.seasonalLoadApplied) {
+            const seasonalLoad = parseFloat(document.getElementById('seasonalLoad').value) / 1000;
+            const seasonalNote = document.createElement('div');
+            seasonalNote.className = 'seasonal-load-applied info-note';
+            seasonalNote.innerHTML = `Includes seasonal load adjustment of ${seasonalLoad.toFixed(2)} kW`;
+            
+            // Add the note below the peak power result
+            const peakPowerCard = document.querySelector('.result-card');
+            if (peakPowerCard) {
+                peakPowerCard.appendChild(seasonalNote);
+            }
+        }
+        
+        // Enable export button if it exists
         const exportBtn = document.getElementById('exportResultsBtn');
         if (exportBtn) {
             exportBtn.classList.remove('hidden');
-            exportBtn.addEventListener('click', () => this.exportResults());
+            
+            // Add click event listener (remove any existing ones first)
+            exportBtn.removeEventListener('click', this.handleExportClick);
+            exportBtn.addEventListener('click', this.handleExportClick.bind(this));
         }
+    }
+
+    // New method to handle export button click with visual effect
+    handleExportClick(event) {
+        const btn = event.target;
         
-        // Scroll to results - we don't need the scroll indicator since we auto-scroll
-        this.scrollToResults();
+        // Add visual feedback
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 5px;">
+                <path d="M8.53 3.97a.75.75 0 0 0-1.06 0l-2 2a.75.75 0 1 0 1.06 1.06l.72-.72v5.19a.75.75 0 0 0 1.5 0V6.31l.72.72a.75.75 0 1 0 1.06-1.06l-2-2Z"/>
+                <path d="M2 13.5A2.5 2.5 0 0 0 4.5 16h7a2.5 2.5 0 0 0 2.5-2.5v-2a.75.75 0 0 0-1.5 0v2c0 .55-.45 1-1 1h-7c-.55 0-1-.45-1-1v-2a.75.75 0 0 0-1.5 0v2Z"/>
+            </svg>
+            Exporting...
+        `;
+        btn.disabled = true;
+        
+        // Execute the export with a slight delay for the visual effect
+        setTimeout(() => {
+            this.exportResults();
+            
+            // Reset button after a short delay
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 700);
+        }, 300);
     }
 
     scrollToResults() {
@@ -1037,7 +1123,7 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
         } else if (hasHourlyData || hasFake15MinData) {
             // Has hourly or fake 15-minute data
             if (daysCovered < 365) {
-                warnings.push("Warning! Hourly data detected. NEC code requires at least 1 year of hourly interval data.");
+                warnings.push("Warning! Less than 1 year of data detected. Seasonal load adjustment will be applied.");
             }
         }
         
@@ -1087,7 +1173,8 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
             dataTypes,
             hasHourlyData,
             has15MinData,
-            hasFake15MinData
+            hasFake15MinData,
+            daysCovered
         };
     }
 
@@ -1256,6 +1343,17 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
             // Get input parameters
             const panelSize = document.getElementById('panelSize').value;
             const voltage = document.getElementById('panelVoltage').value;
+
+            // Check if seasonal load is applicable and visible
+            const seasonalLoadElement = document.getElementById('seasonalLoad');
+            const seasonalLoadContainer = document.getElementById('seasonalLoadContainer');
+            let seasonalLoadInfo = "";
+            
+            // Only include seasonal load if it's being used (visible)
+            if (seasonalLoadElement && seasonalLoadContainer && !seasonalLoadContainer.classList.contains('hidden')) {
+                const seasonalLoad = seasonalLoadElement.value;
+                seasonalLoadInfo = `Seasonal Load,${seasonalLoad} Watts\n`;
+            }
             
             // Check if calculation method is applicable (not for pure 15-minute data)
             const methodElement = document.getElementById('calculationMethod');
@@ -1299,6 +1397,7 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
                 `Date,${new Date().toLocaleDateString()}`,
                 `Panel Size,${panelSize} Amps`,
                 `Panel Voltage,${voltage} Volts`,
+                seasonalLoadInfo,
                 methodInfo,
                 `Peak Power,${peakKw} kW`,
                 `Unused Capacity,${unusedKw} kW`,

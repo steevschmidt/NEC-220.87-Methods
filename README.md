@@ -46,8 +46,10 @@ These changes will increase a home's electric load, making it necessary to deter
 To conform to NEC 220.87 code, data must be collected for a minimum period of 30 days. 
 
 If less than one year of data is used, all of the following shall apply:
-1. [TBD!] Data shall include by measurement or calculation seasonal or periodic loads outside the measurement period.
+1. Data shall include by measurement or calculation seasonal or periodic loads outside the measurement period.
 2. Data shall represent the total demand of connected loads considering any parallel power production sources.
+
+The calculator handles requirement #1 by adding a "Seasonal Load" value (default 5000 watts) to the peak power when less than 365 days of data is provided. This adjusts for seasonal variations that might not be captured in the shorter measurement period.
 
 Quarter hour (15 minute) readings are not adjusted. The repository implements three different methods for handling hourly readings:
 

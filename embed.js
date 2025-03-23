@@ -31,6 +31,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Handle seasonalLoad parameter
+    if (urlParams.has('seasonalLoad')) {
+        const seasonalLoadInput = document.getElementById('seasonalLoad');
+        if (seasonalLoadInput) {
+            seasonalLoadInput.value = urlParams.get('seasonalLoad');
+            // Also make sure the container is visible
+            const seasonalLoadContainer = document.getElementById('seasonalLoadContainer');
+            if (seasonalLoadContainer) {
+                seasonalLoadContainer.classList.remove('hidden');
+            }
+        }
+    }
+
     // Handle hideHeader parameter
     if (urlParams.has('hideHeader') && urlParams.get('hideHeader') === 'true') {
         const header = document.querySelector('header');
@@ -153,7 +166,8 @@ window.getPanelConfig = function() {
     return {
         panelSize: document.getElementById('panelSize')?.value || '150',
         panelVoltage: document.getElementById('panelVoltage')?.value || '240',
-        calculationMethod: document.getElementById('calculationMethod')?.value || 'hea'
+        calculationMethod: document.getElementById('calculationMethod')?.value || 'hea',
+        seasonalLoad: document.getElementById('seasonalLoad')?.value || '5000'
     };
 };
 
@@ -167,6 +181,12 @@ window.setPanelConfig = function(config) {
     }
     if (config.calculationMethod) {
         document.getElementById('calculationMethod').value = config.calculationMethod;
+    }
+    if (config.seasonalLoad) {
+        const seasonalLoadElement = document.getElementById('seasonalLoad');
+        if (seasonalLoadElement) {
+            seasonalLoadElement.value = config.seasonalLoad;
+        }
     }
     return true;
 }; 
