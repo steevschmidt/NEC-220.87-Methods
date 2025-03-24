@@ -370,16 +370,41 @@ function openPrintablePage() {
             </div>
             
             <script>
-                window.onload = () => {
-                    // Auto-print after page loads - increased delay for better reliability
-                    setTimeout(() => {
-                        window.print();
-                    }, 2000);
-                };
+                // More reliable print triggering
+                function triggerPrint() {
+                    // Try to print
+                    console.log('Triggering print dialog...');
+                    window.print();
+                }
+
+                // Check if document is already complete
+                if (document.readyState === 'complete') {
+                    // If already loaded, trigger print after a small delay
+                    setTimeout(triggerPrint, 500);
+                } else {
+                    // Otherwise wait for full load
+                    window.addEventListener('load', function() {
+                        // Short delay to ensure images are fully loaded
+                        setTimeout(triggerPrint, 500);
+                    });
+                }
             </script>
         </body>
         </html>
     `);
+    
+    // Close the document to ensure proper loading
+    printWindow.document.close();
+    
+    // Also trigger print directly (as a backup)
+    try {
+        // A small delay to allow the document to fully load
+        setTimeout(() => {
+            printWindow.print();
+        }, 1000);
+    } catch (e) {
+        console.error("Failed to trigger print directly:", e);
+    }
     
     // Reset the button after a short delay
     setTimeout(() => {
