@@ -81,6 +81,14 @@ class PanelCalculator {
 
         // Initialize the report issue link
         this.initializeReportIssueLink();
+        
+        // Add window resize handler to ensure charts are properly sized on mobile
+        window.addEventListener('resize', () => {
+            if (this.chart) {
+                // Force chart to resize properly
+                this.chart.resize();
+            }
+        });
     }
 
     initializeEventListeners() {
@@ -872,6 +880,12 @@ class PanelCalculator {
                 updatePanelVisualization();
             }
         }
+
+        // Set the chart canvas size to match its container
+        const chartCanvas = document.getElementById('chartCanvas');
+        const chartContainer = chartCanvas.parentElement;
+        chartCanvas.width = chartContainer.clientWidth;
+        chartCanvas.height = chartContainer.clientHeight;
 
         // Group data by hour
         const hourlyStats = {};
