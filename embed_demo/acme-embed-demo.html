@@ -438,7 +438,7 @@
                     </div>
                     
                     <div class="result-card">
-                        <h3>Unused Capacity</h3>
+                        <h3>NEC Safety Factor</h3>
                         <div class="result-value" id="acmeUnusedCapacity">-- kW | -- A</div>
                     </div>
                     
@@ -539,13 +539,13 @@
                         `${results.peakPowerKw.toFixed(2)} kW | ${results.peakPowerAmps.toFixed(1)} A`;
                     
                     document.getElementById('acmeUnusedCapacity').textContent = 
-                        `${results.unusedCapacityKw.toFixed(2)} kW | ${results.unusedCapacityAmps.toFixed(1)} A`;
+                        `${results.safetyFactorKw.toFixed(2)} kW | ${results.safetyFactorAmps.toFixed(1)} A`;
                     
                     document.getElementById('acmeAvailableCapacity').textContent = 
                         `${results.availableCapacityKw.toFixed(2)} kW | ${results.availableCapacityAmps.toFixed(1)} A`;
                     
                     // Add negative class if values are negative
-                    if (results.unusedCapacityKw < 0) {
+                    if (results.safetyFactorKw < 0) {
                         document.getElementById('acmeUnusedCapacity').classList.add('negative-value');
                     } else {
                         document.getElementById('acmeUnusedCapacity').classList.remove('negative-value');

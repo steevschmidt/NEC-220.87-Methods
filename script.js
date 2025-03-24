@@ -666,9 +666,9 @@ class PanelCalculator {
             // Calculate total panel capacity in kW
             const totalPanelCapacityKw = panelSize * panelVoltage / 1000;
             
-            // Calculate unused capacity (before applying safety factor)
-            const unusedCapacityKw = totalPanelCapacityKw - peakPowerKw;
-            const unusedCapacityAmps = panelSize - peakPowerAmps;
+            // Calculate NEC Safety Factor (using FINAL_CAPACITY_MULTIPLIER)
+            const safetyFactorKw = (FINAL_CAPACITY_MULTIPLIER - 1) * peakPowerKw;
+            const safetyFactorAmps = (FINAL_CAPACITY_MULTIPLIER - 1) * peakPowerAmps;
             
             // Calculate available capacity
             const availableCapacityKw = totalPanelCapacityKw - (FINAL_CAPACITY_MULTIPLIER * peakPowerKw);
@@ -677,8 +677,8 @@ class PanelCalculator {
             return {
                 peakPowerKw,
                 peakPowerAmps,
-                unusedCapacityKw,
-                unusedCapacityAmps,
+                safetyFactorKw,
+                safetyFactorAmps,
                 availableCapacityKw,
                 availableCapacityAmps,
                 hourlyData,
@@ -776,8 +776,8 @@ class PanelCalculator {
         document.getElementById('peakKw').textContent = results.peakPowerKw.toFixed(2);
         document.getElementById('peakAmps').textContent = results.peakPowerAmps.toFixed(1);
         
-        document.getElementById('unusedKw').textContent = results.unusedCapacityKw.toFixed(2);
-        document.getElementById('unusedAmps').textContent = results.unusedCapacityAmps.toFixed(1);
+        document.getElementById('unusedKw').textContent = results.safetyFactorKw.toFixed(2);
+        document.getElementById('unusedAmps').textContent = results.safetyFactorAmps.toFixed(1);
         
         document.getElementById('availableKw').textContent = results.availableCapacityKw.toFixed(2);
         document.getElementById('availableAmps').textContent = results.availableCapacityAmps.toFixed(1);
@@ -1369,8 +1369,8 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
             // Get current results
             const peakKw = document.getElementById('peakKw').textContent;
             const peakAmps = document.getElementById('peakAmps').textContent;
-            const unusedKw = document.getElementById('unusedKw').textContent;
-            const unusedAmps = document.getElementById('unusedAmps').textContent;
+            const safetyFactorKw = document.getElementById('unusedKw').textContent;
+            const safetyFactorAmps = document.getElementById('unusedAmps').textContent;
             const availableKw = document.getElementById('availableKw').textContent;
             const availableAmps = document.getElementById('availableAmps').textContent;
             
@@ -1434,7 +1434,7 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
                 seasonalLoadInfo,
                 methodInfo,
                 `Peak Power,${peakKw} kW`,
-                `Unused Capacity,${unusedKw} kW`,
+                `NEC Safety Factor,${safetyFactorKw} kW`,
                 `Available Capacity,${availableKw} kW`,
                 `Data Period,${dataPeriod}`,
                 `Number of Readings,${dataCount}`,

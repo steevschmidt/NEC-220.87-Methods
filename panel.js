@@ -16,7 +16,7 @@ function renderPanelVisualization(panelSize, voltage, peakPower, availableCapaci
     const availableAmps = (availableCapacity * 1000) / voltage;
     
     // Calculate safety factor section (the difference between peak and available)
-    const safetyFactorAmps = (peakAmps * 0.25);
+    const safetyFactorAmps = ((window.FINAL_CAPACITY_MULTIPLIER || 1.25) - 1) * peakAmps;
     
     // Set up dimensions with less blank space
     const panelWidth = width * 0.6; // Reduced width to make the visualization more narrow
@@ -206,7 +206,7 @@ function renderPanelVisualization(panelSize, voltage, peakPower, availableCapaci
     }
     
     // Draw safety factor label
-    drawSectionLabel('Safety Factor', safetyPosition, safetyFactorHeight, safetyFactorAmps);
+    drawSectionLabel('NEC Safety Factor', safetyPosition, safetyFactorHeight, safetyFactorAmps);
     
     // Draw peak power label
     // If peak exceeds total capacity, show the actual value for the label

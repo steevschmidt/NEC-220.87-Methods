@@ -83,8 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         results: {
                             peakPowerKw: results.peakPowerKw,
                             peakPowerAmps: results.peakPowerAmps,
-                            unusedCapacityKw: results.unusedCapacityKw,
-                            unusedCapacityAmps: results.unusedCapacityAmps,
+                            safetyFactorKw: results.safetyFactorKw,
+                            safetyFactorAmps: results.safetyFactorAmps,
                             availableCapacityKw: results.availableCapacityKw,
                             availableCapacityAmps: results.availableCapacityAmps
                         }

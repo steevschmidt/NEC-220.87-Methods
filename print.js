@@ -53,20 +53,20 @@ function openPrintablePage() {
     // Get the current results
     const peakKwElement = document.getElementById('peakKw');
     const peakAmpsElement = document.getElementById('peakAmps');
-    const unusedKwElement = document.getElementById('unusedKw');
-    const unusedAmpsElement = document.getElementById('unusedAmps');
+    const safetyFactorKwElement = document.getElementById('unusedKw');
+    const safetyFactorAmpsElement = document.getElementById('unusedAmps');
     const availableKwElement = document.getElementById('availableKw');
     const availableAmpsElement = document.getElementById('availableAmps');
     
     const peakKw = peakKwElement ? peakKwElement.textContent : 'N/A';
     const peakAmps = peakAmpsElement ? peakAmpsElement.textContent : 'N/A';
-    const unusedKw = unusedKwElement ? unusedKwElement.textContent : 'N/A';
-    const unusedAmps = unusedAmpsElement ? unusedAmpsElement.textContent : 'N/A';
+    const safetyFactorKw = safetyFactorKwElement ? safetyFactorKwElement.textContent : 'N/A';
+    const safetyFactorAmps = safetyFactorAmpsElement ? safetyFactorAmpsElement.textContent : 'N/A';
     const availableKw = availableKwElement ? availableKwElement.textContent : 'N/A';
     const availableAmps = availableAmpsElement ? availableAmpsElement.textContent : 'N/A';
     
     // Check if capacities are negative
-    const isUnusedCapacityNegative = parseFloat(unusedKw) < 0;
+    const isSafetyFactorNegative = parseFloat(safetyFactorKw) < 0;
     const isNegativeCapacity = parseFloat(availableKw) < 0;
     
     // Get data info if available
@@ -319,8 +319,8 @@ function openPrintablePage() {
                     </div>
                     
                     <div class="result-box">
-                        <h3>Unused Capacity</h3>
-                        <div class="result-value ${isUnusedCapacityNegative ? 'negative-value' : ''}">${unusedKw} kW | ${unusedAmps} A</div>
+                        <h3>NEC Safety Factor</h3>
+                        <div class="result-value ${isSafetyFactorNegative ? 'negative-value' : ''}">${safetyFactorKw} kW | ${safetyFactorAmps} A</div>
                     </div>
                     
                     <div class="result-box">
