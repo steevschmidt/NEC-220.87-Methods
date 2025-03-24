@@ -782,6 +782,22 @@ class PanelCalculator {
         document.getElementById('availableKw').textContent = results.availableCapacityKw.toFixed(2);
         document.getElementById('availableAmps').textContent = results.availableCapacityAmps.toFixed(1);
         
+        // Add negative-value class for negative values
+        const unusedValueElement = document.getElementById('unusedKw').parentElement;
+        const availableValueElement = document.getElementById('availableKw').parentElement;
+        
+        if (results.safetyFactorKw < 0) {
+            unusedValueElement.classList.add('negative-value');
+        } else {
+            unusedValueElement.classList.remove('negative-value');
+        }
+        
+        if (results.availableCapacityKw < 0) {
+            availableValueElement.classList.add('negative-value');
+        } else {
+            availableValueElement.classList.remove('negative-value');
+        }
+        
         // Show results section
         this.resultsDiv.classList.remove('hidden');
         

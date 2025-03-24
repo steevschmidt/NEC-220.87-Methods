@@ -173,20 +173,20 @@ function openPrintablePage() {
                     flex-direction: column;
                     gap: 10px;
                 }
-                .result-box {
+                .result-card {
                     background-color: #f9f9f9;
                     border: 1px solid #ddd;
                     border-radius: 5px;
                     padding: 10px;
                 }
-                .result-box h3 {
+                .result-card h3 {
                     font-size: 14px;
                     color: #666;
                     margin: 0 0 5px 0;
                 }
                 .result-value {
-                    font-size: 18px;
-                    font-weight: bold;
+                    font-size: 1.5rem;
+                    font-weight: 300;
                     color: #3498db;
                 }
                 .visualizations-container {
@@ -313,17 +313,17 @@ function openPrintablePage() {
                 </div>
                 
                 <div class="results-container">
-                    <div class="result-box">
+                    <div class="result-card">
                         <h3>Peak Power</h3>
                         <div class="result-value">${peakKw} kW | ${peakAmps} A</div>
                     </div>
                     
-                    <div class="result-box">
+                    <div class="result-card">
                         <h3>NEC Safety Factor</h3>
                         <div class="result-value ${isSafetyFactorNegative ? 'negative-value' : ''}">${safetyFactorKw} kW | ${safetyFactorAmps} A</div>
                     </div>
                     
-                    <div class="result-box">
+                    <div class="result-card">
                         <h3>Available Capacity</h3>
                         <div class="result-value ${isNegativeCapacity ? 'negative-value' : ''}">${availableKw} kW | ${availableAmps} A</div>
                         <div class="info-note">Includes 1.25x NEC safety factor</div>

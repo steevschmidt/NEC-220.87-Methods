@@ -54,7 +54,7 @@ header p {
 }
 
 .upload-container {
-    margin-bottom: 2rem;
+    margin-bottom: 0.5rem;
 }
 
 .upload-area {
@@ -198,6 +198,7 @@ input[type="number"]:focus {
     margin-bottom: 2rem;
 }
 
+/* Result card component - used across main UI, printable report and embed demo */
 .result-card {
     background: white;
     padding: 1rem;
@@ -389,14 +390,15 @@ input[type="number"]:focus {
 }
 
 .sample-data-container {
-    margin-top: 1.5rem;
-    margin-bottom: 3rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
     text-align: center;
 }
 
 .sample-divider {
     color: var(--text-secondary);
-    margin-bottom: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
     font-size: 0.875rem;
 }
 
