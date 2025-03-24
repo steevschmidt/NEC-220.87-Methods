@@ -808,6 +808,11 @@ class PanelCalculator {
             exportBtn.removeEventListener('click', this.handleExportClick);
             exportBtn.addEventListener('click', this.handleExportClick.bind(this));
         }
+        
+        // Update the panel visualization
+        if (typeof updatePanelVisualization === 'function') {
+            updatePanelVisualization();
+        }
     }
 
     // New method to handle export button click with visual effect
@@ -852,6 +857,20 @@ class PanelCalculator {
         // Destroy existing chart if it exists
         if (this.chart) {
             this.chart.destroy();
+        }
+        
+        // Initialize the panel visualization canvas if it exists
+        const panelVisCanvas = document.getElementById('panelVisCanvas');
+        if (panelVisCanvas) {
+            // Set the canvas size to match its container
+            const container = panelVisCanvas.parentElement;
+            panelVisCanvas.width = container.clientWidth;
+            panelVisCanvas.height = container.clientHeight;
+            
+            // Call the panel visualization update function if available
+            if (typeof updatePanelVisualization === 'function') {
+                updatePanelVisualization();
+            }
         }
 
         // Group data by hour
@@ -1482,6 +1501,15 @@ Steps to Reproduce:
             this.chart = null;
         }
         
+        // Clear panel visualization if it exists
+        const panelVisCanvas = document.getElementById('panelVisCanvas');
+        if (panelVisCanvas && panelVisCanvas.getContext) {
+            const ctx = panelVisCanvas.getContext('2d');
+            if (ctx) {
+                ctx.clearRect(0, 0, panelVisCanvas.width, panelVisCanvas.height);
+            }
+        }
+        
         // Remove any existing method selection notification
         const existingNotification = document.querySelector('.method-info-notification');
         if (existingNotification) {
@@ -1517,5 +1545,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const printBtn = document.getElementById('printResultsBtn');
     if (printBtn) {
         printBtn.addEventListener('click', openPrintablePage);
+    }
+    
+    // Initialize panel visualization canvas if it exists
+    const panelVisCanvas = document.getElementById('panelVisCanvas');
+    if (panelVisCanvas) {
+        // Set canvas dimensions based on its container
+        const resizeCanvas = () => {
+            const container = panelVisCanvas.parentElement;
+            if (container) {
+                panelVisCanvas.width = container.clientWidth;
+                panelVisCanvas.height = container.clientHeight;
+                
+                // If we have results displayed, update the visualization
+                if (!document.getElementById('results').classList.contains('hidden') && 
+                    typeof updatePanelVisualization === 'function') {
+                    updatePanelVisualization();
+                }
+            }
+        };
+        
+        // Initial resize
+        resizeCanvas();
+        
+        // Resize on window resize
+        window.addEventListener('resize', resizeCanvas);
     }
 });

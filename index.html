@@ -236,8 +236,27 @@
                     <div class="info-note">Includes 1.25x NEC safety factor</div>
                 </div>
             </div>
-            <div class="chart-container">
-                <canvas id="chartCanvas"></canvas>
+            
+            <!-- Add visualization container for both charts -->
+            <div class="visualizations-container">
+                <div class="chart-container">
+                    <h3 class="chart-title">Hourly Load Pattern</h3>
+                    <canvas id="chartCanvas"></canvas>
+                </div>
+                
+                <div class="panel-vis-container">
+                    <h3 class="chart-title">Panel Capacity
+                        <span class="help-icon" 
+                              title="Shows available capacity (green), NEC safety factor (amber), and peak load (blue) in amps. A warning triangle appears when available capacity is zero or negative." 
+                              aria-label="Help: Panel Capacity Distribution" 
+                              role="tooltip">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </h3>
+                    <canvas id="panelVisCanvas"></canvas>
+                </div>
             </div>
             
             <!-- Add Print and Export buttons in a flex container -->
@@ -262,6 +281,7 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="panel.js"></script>
     <script src="print.js"></script>
     <script src="embed.js"></script>
     <script src="version.js"></script>

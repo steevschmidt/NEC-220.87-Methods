@@ -222,10 +222,14 @@ input[type="number"]:focus {
 }
 
 .chart-container {
-    height: 16rem;
+    flex: 2; /* Takes up 2/3 of the available space */
     background: white;
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    height: 350px;
+    display: flex;
+    flex-direction: column;
 }
 
 .hidden {
@@ -917,4 +921,59 @@ select:focus {
     margin-top: 10px;
     margin-bottom: 20px;
     z-index: 10;
+}
+
+/* Add styles for the visualizations container and panel visualization */
+.visualizations-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 1.5rem;
+}
+
+.panel-vis-container {
+    flex: 1; /* Takes up 1/3 of the available space */
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    height: 350px;
+    display: flex;
+    flex-direction: column;
+    min-width: 180px; /* Ensure minimum width for readability */
+}
+
+.chart-title {
+    font-size: 16px;
+    margin: 0 0 5px 0;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+#panelVisCanvas, #chartCanvas {
+    flex: 1;
+    width: 100%;
+    height: auto;
+}
+
+.panel-description {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0;
+    font-style: italic;
+}
+
+.warning-note {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 768px) {
+    .visualizations-container {
+        flex-direction: column;
+    }
+    
+    .chart-container, .panel-vis-container {
+        width: 100%;
+    }
 } 

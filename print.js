@@ -99,6 +99,17 @@ function openPrintablePage() {
         }
     }
     
+    // Get the panel visualization as an image
+    let panelVisImage = '';
+    const panelVisCanvas = document.getElementById('panelVisCanvas');
+    if (panelVisCanvas) {
+        try {
+            panelVisImage = panelVisCanvas.toDataURL('image/png');
+        } catch (e) {
+            panelVisImage = ''; // Just use empty string if conversion fails
+        }
+    }
+    
     // Create the printable page HTML with more comprehensive layout
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -178,15 +189,52 @@ function openPrintablePage() {
                     font-weight: bold;
                     color: #3498db;
                 }
-                .chart-container {
-                    width: 100%;
-                    height: 300px;
-                    margin: 15px 0 0 0;
+                .visualizations-container {
+                    display: flex;
+                    gap: 15px;
+                    margin: 15px 0;
+                    flex-wrap: wrap;
                 }
-                .chart-image {
+                .chart-container {
+                    flex: 2;
+                    min-width: 300px;
+                }
+                .panel-vis-container {
+                    flex: 1;
+                    min-width: 180px;
+                }
+                .chart-image, .panel-vis-image {
                     max-width: 100%;
                     height: auto;
                     border: 1px solid #ddd;
+                }
+                .legend {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                    margin-bottom: 10px;
+                    justify-content: center;
+                    font-size: 12px;
+                }
+                .legend-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                }
+                .color-box {
+                    width: 12px;
+                    height: 12px;
+                    display: inline-block;
+                    border: 1px solid #ddd;
+                }
+                .color-box.green { background-color: #5a9e6f; }
+                .color-box.amber { background-color: #e9b949; }
+                .color-box.blue { background-color: #3b7ea1; }
+                .panel-description {
+                    font-size: 12px;
+                    color: #555;
+                    margin: 5px 0 10px 0;
+                    font-style: italic;
                 }
                 .data-summary {
                     font-size: 13px;
@@ -248,9 +296,6 @@ function openPrintablePage() {
                     body {
                         padding: 0;
                     }
-                    .no-print {
-                        display: none;
-                    }
                 }
             </style>
         </head>
@@ -259,72 +304,84 @@ function openPrintablePage() {
             
             <div class="compact-layout">
                 <div class="parameters">
-                    <h2>Input Parameters</h2>
+                    <h2>Panel Specifications</h2>
                     <p><strong>Panel Size:</strong> ${panelSize} Amps</p>
                     <p><strong>Voltage:</strong> ${voltage} Volts</p>
                     ${seasonalLoadInfo}
                     ${methodInfo}
-                    <p><strong>File:</strong> ${fileName}</p>
-                    ${dataInfoSummary ? `<p class="data-summary">${dataInfoSummary}</p>` : ''}
+                    <p><strong>Input Data:</strong> ${fileName}</p>
                 </div>
                 
                 <div class="results-container">
                     <div class="result-box">
                         <h3>Peak Power</h3>
-                        <div class="result-value">${peakKw} kW / ${peakAmps} A</div>
-                        ${seasonalLoad ? `<div class="info-note">*Includes seasonal load adjustment of ${(parseFloat(seasonalLoad)/1000).toFixed(2)} kW</div>` : ''}
+                        <div class="result-value">${peakKw} kW | ${peakAmps} A</div>
                     </div>
+                    
                     <div class="result-box">
                         <h3>Unused Capacity</h3>
-                        <div class="result-value ${isUnusedCapacityNegative ? 'negative-value' : ''}">${unusedKw} kW / ${unusedAmps} A</div>
+                        <div class="result-value ${isUnusedCapacityNegative ? 'negative-value' : ''}">${unusedKw} kW | ${unusedAmps} A</div>
                     </div>
+                    
                     <div class="result-box">
                         <h3>Available Capacity</h3>
-                        <div class="result-value ${isNegativeCapacity ? 'negative-value' : ''}">${availableKw} kW / ${availableAmps} A</div>
-                        <div class="info-note">*Includes NEC safety factor (1.25x) applied to peak power</div>
+                        <div class="result-value ${isNegativeCapacity ? 'negative-value' : ''}">${availableKw} kW | ${availableAmps} A</div>
+                        <div class="info-note">Includes 1.25x NEC safety factor</div>
                     </div>
                 </div>
             </div>
             
-            ${chartImage ? `
-            <div class="chart-container">
-                <img class="chart-image" src="${chartImage}" alt="Load Profile Chart">
+            <div class="visualizations-container">
+                <div class="chart-container">
+                    <h2>Hourly Load Pattern</h2>
+                    ${chartImage ? `<img class="chart-image" src="${chartImage}" alt="Hourly Load Chart">` : '<p>Chart not available</p>'}
+                </div>
+                
+                <div class="panel-vis-container">
+                    <h2>Panel Capacity</h2>
+                    ${panelVisImage ? `<img class="panel-vis-image" src="${panelVisImage}" alt="Panel Capacity Visualization">` : '<p>Panel visualization not available</p>'}
+                </div>
             </div>
+            
+            ${dataInfoSummary ? `
+            <p class="data-summary">${dataInfoSummary}</p>
             ` : ''}
             
             ${analysisDetails.length > 0 ? `
             <div class="analysis-details compact-spacing">
-                <h2>Analysis Details</h2>
+                <h2>Data Analysis Details</h2>
                 <div class="detail-items-container">
                     <div class="detail-column">
-                        ${analysisDetails.slice(0, Math.ceil(analysisDetails.length/2)).map(detail => `<div class="detail-item">${detail}</div>`).join('')}
+                        ${analysisDetails.slice(0, Math.ceil(analysisDetails.length / 2)).map(detail => `
+                            <div class="detail-item">${detail}</div>
+                        `).join('')}
                     </div>
                     <div class="detail-column">
-                        ${analysisDetails.slice(Math.ceil(analysisDetails.length/2)).map(detail => `<div class="detail-item">${detail}</div>`).join('')}
+                        ${analysisDetails.slice(Math.ceil(analysisDetails.length / 2)).map(detail => `
+                            <div class="detail-item">${detail}</div>
+                        `).join('')}
                     </div>
                 </div>
             </div>
             ` : ''}
             
             <div class="footer">
-                <p>Generated by Panel Capacity Calculator ${window.APP_VERSION || (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v?')}, Developed under a grant from the California Energy Commission, on ${new Date().toLocaleDateString()}</p>
-                <button class="no-print" onclick="window.print()">Print This Page</button>
+                Generated with Panel Capacity Calculator - An implementation of NEC 220.87 • ${new Date().toLocaleString()}
             </div>
             
             <script>
-                // Auto-print when loaded
-                window.onload = function() {
-                    setTimeout(function() {
+                window.onload = () => {
+                    // Auto-print after page loads - increased delay for better reliability
+                    setTimeout(() => {
                         window.print();
-                    }, 500);
-                }
+                    }, 2000);
+                };
             </script>
         </body>
         </html>
     `);
-    printWindow.document.close();
     
-    // Reset button state after a short delay
+    // Reset the button after a short delay
     setTimeout(() => {
         printBtn.innerHTML = originalText;
         printBtn.disabled = false;
