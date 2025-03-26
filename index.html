@@ -107,10 +107,10 @@
                 <p class="sample-divider">or</p>
                 <p class="sample-header">Try running the calculator using one of these sample files:</p>
                 <div class="sample-buttons">
+                    <button class="sample-button" data-file="test5_15min_1yr.csv" data-format="simple">1 Year of 15-min Data</button>
                     <button class="sample-button" data-file="test4_15min_1mo.csv" data-format="simple">1 Month of 15-min Data</button>
                     <button class="sample-button" data-file="test2_hourly_1mo.csv" data-format="simple">1 Month of Hourly Data</button>
                     <button class="sample-button" data-file="test3_fake15_1mo.csv" data-format="simple">1 Month of Pseudo 15-min Data</button>
-                    <button class="sample-button" data-file="test5_15min_1yr.csv" data-format="simple">1 Year of 15-min Data</button>
                     <!-- PG&E Sample Data (currently hidden)
                     <button class="sample-button" data-file="PGE_test1.csv" data-format="pge">PG&E Sample 15-min Data</button>
                     <button class="sample-button" data-file="PGE_test2.csv" data-format="pge">PG&E Sample Hourly Data</button>
@@ -193,7 +193,17 @@
             <h2>Results</h2>
             <div class="results-grid">
                 <div class="result-card">
-                    <h3>Peak Power</h3>
+                    <h3>
+                        Peak Power
+                        <span class="help-icon" 
+                              title="This is the maximum power demand observed in your historical meter data, with any necessary adjustments based on the calculation method selected." 
+                              aria-label="Help: Peak Power" 
+                              role="tooltip">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </h3>
                     <div class="result-value">
                         <span id="peakKw">-</span> kW
                         <span class="separator">|</span>
@@ -240,7 +250,17 @@
             <!-- Add visualization container for both charts -->
             <div class="visualizations-container">
                 <div class="chart-container">
-                    <h3 class="chart-title">Hourly Load Pattern</h3>
+                    <h3 class="chart-title">
+                        Hourly Load Pattern
+                        <span class="help-icon" 
+                              title="Shows your electricity usage patterns over a typical day. The green line represents average usage, while the blue line shows the maximum observed values for each hour." 
+                              aria-label="Help: Hourly Load Pattern" 
+                              role="tooltip">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </h3>
                     <canvas id="chartCanvas"></canvas>
                 </div>
                 
