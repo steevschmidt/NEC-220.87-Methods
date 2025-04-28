@@ -48,7 +48,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (urlParams.has('hideHeader') && urlParams.get('hideHeader') === 'true') {
         const header = document.querySelector('header');
         if (header) {
-            header.style.display = 'none';
+            header.classList.add('hidden');
+        }
+        const valueProposition = document.querySelector('.value-proposition');
+        if (valueProposition) {
+            valueProposition.classList.add('hidden');
         }
     }
     
@@ -127,6 +131,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             /* Adjust header size when embedded */
+            body.embedded header.hidden {
+                display: none;
+            }
+            
+            body.embedded .value-proposition.hidden {
+                display: none;
+            }
+            
             body.embedded header h1 {
                 font-size: 1.5rem;
             }

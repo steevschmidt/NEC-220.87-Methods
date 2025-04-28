@@ -522,7 +522,7 @@
                 const calculationMethod = calculationMethodSelect.value;
                 
                 // Update iframe src with query parameters
-                calculatorIframe.src = `https://panel.hea.com/index.html?panelSize=${panelSize}&panelVoltage=${panelVoltage}&calculationMethod=${calculationMethod}`;
+                calculatorIframe.src = `https://panel.hea.com/index.html?panelSize=${panelSize}&panelVoltage=${panelVoltage}&calculationMethod=${calculationMethod}&hideHeader=true`;
             });
             
             // Listen for messages from the iframe

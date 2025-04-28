@@ -42,6 +42,13 @@
             <p>Developed under this <a href="https://www.energizeinnovation.fund/projects/decision-tool-electrify-homes-limited-electrical-panel-capacity#tab-overview" target="_blank">Grant from the California Energy Commission</a>.</p>
         </header>
 
+        <!-- Value Proposition Section -->
+        <div class="value-proposition hideable-section">
+            <h2>Adding new electric devices to your home?</h2>
+            <p class="highlight">Avoid the high costs and long delays of upsizing your electric panel!</p>
+            <p>Many homes have unused electrical capacity that can be safely used for new devices like heat pumps, electric vehicles, or induction stoves. This tool helps you determine your available capacity using your actual usage data, potentially saving you thousands of dollars in unnecessary panel upgrades.</p>
+        </div>
+
         <!-- File Upload Section -->
         <div class="card">
             <h2>Step 1: Upload Your Electric Usage Data</h2>
@@ -154,7 +161,7 @@
                 <div id="seasonalLoadContainer" class="input-group hidden">
                     <label for="seasonalLoad">
                         Seasonal Load (Watts)
-                        <span class="help-icon" title="Additional load to account for seasonal variations when using less than 1 year of data. This figure should include the maximum nameplate watts (or nameplate amps times device voltage)from any seasonal or periodic devices that were not active during the timespan of this data. If the data excludes both heating and cooling loads, include only the larger of the two. Typical value is 5000 watts.">
+                        <span class="help-icon" title="Additional load to account for seasonal variations when using less than 1 year of data. This figure should include the maximum nameplate watts (or nameplate amps times device voltage) from any seasonal or periodic devices that were not active during the timespan of this data. If the data excludes both heating and cooling loads, include only the larger of the two. Typical value is 5000 watts.">
                             <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
                             </svg>
@@ -192,6 +199,23 @@
         <div id="results" class="card hidden">
             <h2>Results</h2>
             <div class="results-grid">
+                <div class="result-card featured-result">
+                    <h3>
+                        Available Capacity
+                        <span class="help-icon" 
+                              title="This is the available capacity after applying the NEC safety factor (1.25x) to the measured peak power." 
+                              aria-label="Help: Available Capacity" 
+                              role="tooltip">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </h3>
+                    <div class="result-value">
+                        <span id="availableKw">-</span> kW / <span id="availableAmps">-</span> Amps
+                    </div>
+                    <div class="info-note">Includes 1.25x NEC safety factor</div>
+                </div>
                 <div class="result-card">
                     <h3>
                         Peak Power
@@ -207,7 +231,7 @@
                     <div class="result-value">
                         <span id="peakKw">-</span> kW
                         <span class="separator">|</span>
-                        <span id="peakAmps">-</span> A
+                        <span id="peakAmps">-</span> Amps
                     </div>
                 </div>
                 <div class="result-card">
@@ -225,25 +249,8 @@
                     <div class="result-value">
                         <span id="unusedKw">-</span> kW
                         <span class="separator">|</span>
-                        <span id="unusedAmps">-</span> A
+                        <span id="unusedAmps">-</span> Amps
                     </div>
-                </div>
-                <div class="result-card">
-                    <h3>
-                        Available Capacity
-                        <span class="help-icon" 
-                              title="This is the available capacity after applying the NEC safety factor (1.25x) to the measured peak power." 
-                              aria-label="Help: Available Capacity" 
-                              role="tooltip">
-                            <svg viewBox="0 0 20 20" fill="currentColor" class="help-icon-svg">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v.5a.5.5 0 01-.5.5 1 1 0 100 2 .5.5 0 01.5.5V11a1 1 0 102 0v-.5a.5.5 0 01.5-.5 1 1 0 100-2 .5.5 0 01-.5-.5V7z" clip-rule="evenodd" />
-                            </svg>
-                        </span>
-                    </h3>
-                    <div class="result-value">
-                        <span id="availableKw">-</span> kW / <span id="availableAmps">-</span> A
-                    </div>
-                    <div class="info-note">Includes 1.25x NEC safety factor</div>
                 </div>
             </div>
             
@@ -320,5 +327,13 @@
             </p>
         </div>
     </footer>
+
+    <style>
+        .result-card.featured-result .result-value {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #2563eb;
+        }
+    </style>
 </body>
 </html> 

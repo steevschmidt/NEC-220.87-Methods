@@ -773,13 +773,13 @@ class PanelCalculator {
         if (!results) return;
         
         // Update display elements with results
-        document.getElementById('peakKw').textContent = results.peakPowerKw.toFixed(2);
+        document.getElementById('peakKw').textContent = results.peakPowerKw.toFixed(1);
         document.getElementById('peakAmps').textContent = results.peakPowerAmps.toFixed(1);
         
-        document.getElementById('unusedKw').textContent = results.safetyFactorKw.toFixed(2);
+        document.getElementById('unusedKw').textContent = results.safetyFactorKw.toFixed(1);
         document.getElementById('unusedAmps').textContent = results.safetyFactorAmps.toFixed(1);
         
-        document.getElementById('availableKw').textContent = results.availableCapacityKw.toFixed(2);
+        document.getElementById('availableKw').textContent = results.availableCapacityKw.toFixed(1);
         document.getElementById('availableAmps').textContent = results.availableCapacityAmps.toFixed(1);
         
         // Add negative-value class for negative values
@@ -814,7 +814,7 @@ class PanelCalculator {
             const seasonalLoad = parseFloat(document.getElementById('seasonalLoad').value) / 1000;
             const seasonalNote = document.createElement('div');
             seasonalNote.className = 'seasonal-load-applied info-note';
-            seasonalNote.innerHTML = `Includes seasonal load adjustment of ${seasonalLoad.toFixed(2)} kW`;
+            seasonalNote.innerHTML = `Includes seasonal adjustment of ${seasonalLoad.toFixed(2)} kW`;
             
             // Add the note below the peak power result
             const peakPowerCard = document.querySelector('.result-card');

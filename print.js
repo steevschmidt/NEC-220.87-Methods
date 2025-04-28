@@ -119,12 +119,17 @@ function openPrintablePage() {
         printBtn.disabled = false;
         return;
     }
-    
-    printWindow.document.write(`
+
+    // Write the document content in a more reliable way
+    const doc = printWindow.document;
+    doc.open();
+    doc.write(`
         <!DOCTYPE html>
         <html>
         <head>
             <title>Panel Capacity Calculator Results</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
                 body {
                     font-family: Arial, sans-serif;
@@ -153,6 +158,7 @@ function openPrintablePage() {
                     flex-wrap: wrap;
                     gap: 15px;
                     margin-bottom: 15px;
+                    padding-right: 20px;
                 }
                 .parameters {
                     flex: 1;
@@ -172,12 +178,31 @@ function openPrintablePage() {
                     display: flex;
                     flex-direction: column;
                     gap: 10px;
+                    padding-right: 10px;
                 }
                 .result-card {
                     background-color: #f9f9f9;
                     border: 1px solid #ddd;
                     border-radius: 5px;
                     padding: 10px;
+                    margin-right: 10px;
+                }
+                .result-card.featured-result {
+                    background-color: #f0f9ff;
+                    border: 2px solid #2563eb;
+                    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+                    transform: scale(1.02);
+                    margin-right: 15px;
+                }
+                .result-card.featured-result h3 {
+                    color: #1e40af;
+                    font-weight: 600;
+                    font-size: 16px;
+                }
+                .result-card.featured-result .result-value {
+                    font-size: 1.5rem;
+                    font-weight: 500;
+                    color: #2563eb;
                 }
                 .result-card h3 {
                     font-size: 14px;
@@ -251,7 +276,13 @@ function openPrintablePage() {
                 }
                 .info-note {
                     font-size: 11px;
-                    color: #666;
+                    color: #666666;
+                    font-style: italic;
+                    margin-top: 3px;
+                }
+                .seasonal-load-applied {
+                    font-size: 11px;
+                    color: #666666;
                     font-style: italic;
                     margin-top: 3px;
                 }
@@ -304,29 +335,27 @@ function openPrintablePage() {
             
             <div class="compact-layout">
                 <div class="parameters">
-                    <h2>Panel Specifications</h2>
+                    <h2>Panel Configuration</h2>
                     <p><strong>Panel Size:</strong> ${panelSize} Amps</p>
                     <p><strong>Voltage:</strong> ${voltage} Volts</p>
                     ${seasonalLoadInfo}
                     ${methodInfo}
-                    <p><strong>Input Data:</strong> ${fileName}</p>
+                    <p><strong>Data File:</strong> ${fileName}</p>
                 </div>
                 
                 <div class="results-container">
+                    <div class="result-card featured-result">
+                        <h3>Available Capacity</h3>
+                        <div class="result-value ${isNegativeCapacity ? 'negative-value' : ''}">${availableKw} kW | ${availableAmps} Amps</div>
+                        <div class="info-note">Includes 1.25x NEC safety factor</div>
+                    </div>
                     <div class="result-card">
                         <h3>Peak Power</h3>
-                        <div class="result-value">${peakKw} kW | ${peakAmps} A</div>
+                        <div class="result-value">${peakKw} kW | ${peakAmps} Amps</div>
                     </div>
-                    
                     <div class="result-card">
                         <h3>NEC Safety Factor</h3>
-                        <div class="result-value ${isSafetyFactorNegative ? 'negative-value' : ''}">${safetyFactorKw} kW | ${safetyFactorAmps} A</div>
-                    </div>
-                    
-                    <div class="result-card">
-                        <h3>Available Capacity</h3>
-                        <div class="result-value ${isNegativeCapacity ? 'negative-value' : ''}">${availableKw} kW | ${availableAmps} A</div>
-                        <div class="info-note">Includes 1.25x NEC safety factor</div>
+                        <div class="result-value ${isSafetyFactorNegative ? 'negative-value' : ''}">${safetyFactorKw} kW | ${safetyFactorAmps} Amps</div>
                     </div>
                 </div>
             </div>
@@ -370,42 +399,23 @@ function openPrintablePage() {
             </div>
             
             <script>
-                // More reliable print triggering
-                function triggerPrint() {
-                    // Try to print
-                    console.log('Triggering print dialog...');
-                    window.print();
-                }
-
-                // Check if document is already complete
-                if (document.readyState === 'complete') {
-                    // If already loaded, trigger print after a small delay
-                    setTimeout(triggerPrint, 500);
-                } else {
-                    // Otherwise wait for full load
-                    window.addEventListener('load', function() {
-                        // Short delay to ensure images are fully loaded
-                        setTimeout(triggerPrint, 500);
-                    });
-                }
+                // Wait for all resources to load before printing
+                window.addEventListener('load', function() {
+                    // Small delay to ensure everything is rendered
+                    setTimeout(function() {
+                        window.print();
+                        // Close the window after printing
+                        window.onafterprint = function() {
+                            window.close();
+                        };
+                    }, 500);
+                });
             </script>
         </body>
         </html>
     `);
-    
-    // Close the document to ensure proper loading
-    printWindow.document.close();
-    
-    // Also trigger print directly (as a backup)
-    try {
-        // A small delay to allow the document to fully load
-        setTimeout(() => {
-            printWindow.print();
-        }, 1000);
-    } catch (e) {
-        console.error("Failed to trigger print directly:", e);
-    }
-    
+    doc.close();
+
     // Reset the button after a short delay
     setTimeout(() => {
         printBtn.innerHTML = originalText;

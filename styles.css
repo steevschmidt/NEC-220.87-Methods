@@ -206,6 +206,25 @@ input[type="number"]:focus {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+.result-card.featured-result {
+    background: #f0f9ff;
+    border: 2px solid #2563eb;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    transform: scale(1.02);
+    transition: transform 0.2s ease;
+}
+
+.result-card.featured-result h3 {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.result-card.featured-result .result-value {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #2563eb;
+}
+
 .result-card h3 {
     font-size: 0.875rem;
     color: var(--text-secondary);
@@ -983,4 +1002,45 @@ select:focus {
         min-height: 300px; /* Ensure minimum height for content visibility */
         max-height: 350px; /* Limit maximum height to prevent excessive scrolling */
     }
+}
+
+/* Value Proposition Section */
+.value-proposition {
+    background-color: #f0f9ff;
+    border-left: 4px solid #2563eb;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    border-radius: 0.5rem;
+}
+
+.value-proposition h2 {
+    color: #1e40af;
+    margin-top: 0;
+    font-size: 1.5rem;
+}
+
+.value-proposition .highlight {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e40af;
+    margin: 1rem 0;
+}
+
+.value-proposition p {
+    margin: 0.5rem 0;
+    line-height: 1.5;
+}
+
+.info-note {
+    font-size: 0.75rem;
+    color: #666666;
+    font-style: italic;
+    margin-top: 3px;
+}
+
+.seasonal-load-applied {
+    font-size: 0.75rem;
+    color: #666666;
+    font-style: italic;
+    margin-top: 3px;
 } 
