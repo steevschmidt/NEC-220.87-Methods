@@ -137,7 +137,9 @@ The calculator automatically applies special styles when embedded. If you need a
 
 ## Example Implementation
 
-The `acme-embed-demo.html` file in this directory provides a complete example of how to embed the Panel Capacity Calculator and interact with it. Key features of this example:
+The `acme-embed-demo.html` file in this directory provides a complete example of how to embed the Panel Capacity Calculator and interact with it. Try it out at https://panel.hea.com/embed_demo/acme-embed-demo.html 
+
+Key features of this example:
 
 1. Configuring the calculator with user-selected parameters
 2. Receiving and displaying calculation results
