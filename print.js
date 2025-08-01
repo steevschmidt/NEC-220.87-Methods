@@ -177,7 +177,7 @@ function openPrintablePage() {
                     min-width: 200px;
                     display: flex;
                     flex-direction: column;
-                    gap: 10px;
+                    gap: 6px;
                     padding-right: 10px;
                 }
                 .result-card {
@@ -200,19 +200,23 @@ function openPrintablePage() {
                     font-size: 16px;
                 }
                 .result-card.featured-result .result-value {
-                    font-size: 1.5rem;
+                    font-size: 1.3rem;
                     font-weight: 500;
                     color: #2563eb;
                 }
                 .result-card h3 {
-                    font-size: 14px;
+                    font-size: 12px;
                     color: #666;
-                    margin: 0 0 5px 0;
+                    margin: 0 0 3px 0;
                 }
                 .result-value {
-                    font-size: 1.5rem;
+                    font-size: 1.2rem;
                     font-weight: 300;
                     color: #3498db;
+                }
+                /* Reduce padding for non-featured result cards */
+                .result-card:not(.featured-result) {
+                    padding: 6px 10px;
                 }
                 .visualizations-container {
                     display: flex;
@@ -275,10 +279,10 @@ function openPrintablePage() {
                     padding-top: 10px;
                 }
                 .info-note {
-                    font-size: 11px;
+                    font-size: 10px;
                     color: #666666;
                     font-style: italic;
-                    margin-top: 3px;
+                    margin-top: 2px;
                 }
                 .seasonal-load-applied {
                     font-size: 11px;
