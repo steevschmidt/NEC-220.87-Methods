@@ -1265,14 +1265,38 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
         let hasFake15MinData = false;
         let warnings = [];
 
+        // Count hours with different patterns
+        let hoursWithSingleReading = 0;
+        let hoursWithFourUniqueReadings = 0;
+        let hoursWithFourIdenticalReadings = 0;
+        const totalHours = Object.keys(hourlyGroups).length;
+
         Object.values(hourlyGroups).forEach(hourData => {
             const uniqueReadings = new Set(hourData.readings).size;
             const readingCount = hourData.count;
 
-            if (readingCount === 1) hasHourlyData = true;
-            if (readingCount === 4 && uniqueReadings > 1) has15MinData = true;
-            if (readingCount === 4 && uniqueReadings === 1) hasFake15MinData = true;
+            if (readingCount === 1) {
+                hasHourlyData = true;
+                hoursWithSingleReading++;
+            } else if (readingCount === 4 && uniqueReadings > 1) {
+                has15MinData = true;
+                hoursWithFourUniqueReadings++;
+            } else if (readingCount === 4 && uniqueReadings === 1) {
+                hoursWithFourIdenticalReadings++;
+            }
         });
+
+        // Apply percentage-based threshold for fake 15-minute data detection
+        // Require that >50% of hours show identical 15-minute readings to avoid false positives
+        const percentageIdentical = totalHours > 0 ? (hoursWithFourIdenticalReadings / totalHours) * 100 : 0;
+        if (percentageIdentical > 50) {
+            hasFake15MinData = true;
+        }
+
+        // Add note about threshold if there are some identical readings but not enough to classify
+        if (hoursWithFourIdenticalReadings > 0 && percentageIdentical <= 50) {
+            warnings.push(`Note: ${hoursWithFourIdenticalReadings} hours (${percentageIdentical.toFixed(1)}%) have identical 15-minute readings, but this is below the 50% threshold for classifying as "fake 15-minute" data. These are likely random coincidences.`);
+        }
 
         // Determine data type
         let dataTypes = [];
@@ -1333,6 +1357,8 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
                 `Number of hours with data: ${Object.keys(hourlyGroups).length}`,
                 `Peak reading(s): ${peakReadings}`,
                 methodDetail,
+                // Add detailed pattern breakdown
+                `Pattern analysis: ${hoursWithSingleReading} hours with single readings (${totalHours > 0 ? (hoursWithSingleReading / totalHours * 100).toFixed(1) : 0}%), ${hoursWithFourUniqueReadings} hours with 4 unique 15-min readings (${totalHours > 0 ? (hoursWithFourUniqueReadings / totalHours * 100).toFixed(1) : 0}%), ${hoursWithFourIdenticalReadings} hours with 4 identical 15-min readings (${percentageIdentical.toFixed(1)}%)`,
                 ...(warnings.length > 0 ? warnings : [])
             ].filter(item => item !== ""),
             warnings,
