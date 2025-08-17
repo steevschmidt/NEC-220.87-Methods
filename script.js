@@ -903,6 +903,14 @@ class PanelCalculator {
         chartCanvas.width = chartContainer.clientWidth;
         chartCanvas.height = chartContainer.clientHeight;
 
+        // Get the final peak power value that's already calculated and displayed
+        // This ensures the chart matches the Peak Power display exactly
+        const peakPowerElement = document.getElementById('peakKw');
+        let finalPeakPowerKw = 0;
+        if (peakPowerElement && peakPowerElement.textContent !== '-') {
+            finalPeakPowerKw = parseFloat(peakPowerElement.textContent);
+        }
+
         // Group data by hour and apply the same conversion logic as calculatePeakLoad
         const hourlyStats = {};
         const calculationMethod = document.getElementById('calculationMethod')?.value || 'nec';
@@ -1006,10 +1014,20 @@ class PanelCalculator {
             hourlyStats[hour] ? hourlyStats[hour].sum / hourlyStats[hour].count : null
         );
 
-        // Calculate peak line (constant value across all hours)
-        const peakValue = Math.max(...Object.values(hourlyStats).map(stat => stat.max));
-        const peakValues = Array(24).fill(peakValue);
+        // Use the final peak power value that's already calculated and displayed
+        // This ensures the chart matches the Peak Power display exactly
+        const peakValues = Array(24).fill(finalPeakPowerKw);
 
+        // Get panel voltage for amp calculations
+        const panelVoltage = parseFloat(document.getElementById('panelVoltage')?.value || '240');
+        
+        // Calculate amp range for right Y-axis using the final peak power value
+        const maxKwValue = Math.max(finalPeakPowerKw, ...Object.values(hourlyStats).map(stat => stat.max));
+        const maxAmpsValue = (maxKwValue * 1000) / panelVoltage;
+        
+        // Round the max amps to a nice round number for better axis readability
+        const roundedMaxAmps = Math.ceil(maxAmpsValue / 10) * 10;
+        
         // Create chart with all lines
         this.chart = new Chart(ctx, {
             type: 'line',
@@ -1026,7 +1044,8 @@ class PanelCalculator {
                         pointStyle: 'line',
                         pointRadius: 0,          // Hide individual points
                         pointHoverRadius: 4,     // Show points on hover
-                        tension: 0.1            // Slightly smooth the lines
+                        tension: 0.1,           // Slightly smooth the lines
+                        yAxisID: 'y'            // Use left Y-axis (kW)
                     },
                     {
                         label: 'Max',
@@ -1037,7 +1056,8 @@ class PanelCalculator {
                         pointStyle: 'line',
                         pointRadius: 0,          // Hide individual points
                         pointHoverRadius: 4,     // Show points on hover
-                        tension: 0.1            // Slightly smooth the lines
+                        tension: 0.1,           // Slightly smooth the lines
+                        yAxisID: 'y'            // Use left Y-axis (kW)
                     },
                     {
                         label: 'Mean',
@@ -1048,7 +1068,8 @@ class PanelCalculator {
                         pointStyle: 'line',
                         pointRadius: 0,          // Hide individual points
                         pointHoverRadius: 4,     // Show points on hover
-                        tension: 0.1            // Slightly smooth the lines
+                        tension: 0.1,           // Slightly smooth the lines
+                        yAxisID: 'y'            // Use left Y-axis (kW)
                     },
                     {
                         label: 'Min',
@@ -1059,7 +1080,8 @@ class PanelCalculator {
                         pointStyle: 'line',
                         pointRadius: 0,          // Hide individual points
                         pointHoverRadius: 4,     // Show points on hover
-                        tension: 0.1            // Slightly smooth the lines
+                        tension: 0.1,           // Slightly smooth the lines
+                        yAxisID: 'y'            // Use left Y-axis (kW)
                     }
                 ]
             },
@@ -1087,6 +1109,9 @@ class PanelCalculator {
                         }
                     },
                     y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
                         title: {
                             display: true,
                             text: 'kW'
@@ -1095,6 +1120,26 @@ class PanelCalculator {
                         ticks: {
                             callback: function(value) {
                                 return value.toFixed(1);  // Consistent decimal places
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Amps'
+                        },
+                        beginAtZero: true,
+                        min: 0,
+                        max: roundedMaxAmps,
+                        grid: {
+                            drawOnChartArea: false, // Only show grid for left Y-axis
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(0);  // Whole numbers for amps
                             }
                         }
                     }
