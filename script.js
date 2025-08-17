@@ -903,10 +903,79 @@ class PanelCalculator {
         chartCanvas.width = chartContainer.clientWidth;
         chartCanvas.height = chartContainer.clientHeight;
 
-        // Group data by hour
+        // Group data by hour and apply the same conversion logic as calculatePeakLoad
         const hourlyStats = {};
+        const calculationMethod = document.getElementById('calculationMethod')?.value || 'nec';
+        
+        // First, group the raw data by hour
+        const hourlyGroups = {};
         data.forEach(reading => {
             const hour = reading.datetime.getHours();
+            const date = reading.datetime.toDateString();
+            const key = `${date}-${hour}`;
+            
+            if (!hourlyGroups[key]) {
+                hourlyGroups[key] = {
+                    readings: [],
+                    count: 0
+                };
+            }
+            hourlyGroups[key].readings.push(reading.kwh);
+            hourlyGroups[key].count++;
+        });
+
+        // Now process each hour using the same logic as calculatePeakLoad
+        Object.entries(hourlyGroups).forEach(([key, hourData]) => {
+            const hour = parseInt(key.split('-')[1]);
+            const { readings } = hourData;
+            const hourlyMax = Math.max(...readings);
+            const uniqueReadings = new Set(readings).size;
+            const readingCount = readings.length;
+            
+            let adjustedMax;
+            
+            if (readingCount === 4) {
+                // Always apply 4x for 15-minute data (both real and fake)
+                adjustedMax = hourlyMax * 4;
+                
+                // For fake 15-minute data, apply additional multiplier based on method
+                if (uniqueReadings === 1) {
+                    if (calculationMethod === 'hea') {
+                        // HEA method: apply 1.3x
+                        adjustedMax *= 1.3;
+                    } else if (calculationMethod === 'lbnl') {
+                        // LBNL method for fake 15-minute data
+                        // First convert to hourly equivalent
+                        const hourlyEquivalent = adjustedMax;
+                        
+                        // Then apply LBNL formula
+                        if (hourlyEquivalent < 7.5) {
+                            adjustedMax = 2.2 + 1.4 * hourlyEquivalent;
+                        } else {
+                            adjustedMax = 5.2 + hourlyEquivalent;
+                        }
+                    }
+                    // NEC method: no additional adjustment
+                }
+            } else {
+                // Single reading (hourly data)
+                if (calculationMethod === 'hea') {
+                    // HEA method: apply 1.3x
+                    adjustedMax = hourlyMax * 1.3;
+                } else if (calculationMethod === 'lbnl') {
+                    // LBNL method for hourly data
+                    if (hourlyMax < 7.5) {
+                        adjustedMax = 2.2 + 1.4 * hourlyMax;
+                    } else {
+                        adjustedMax = 5.2 + hourlyMax;
+                    }
+                } else {
+                    // NEC method: no adjustment
+                    adjustedMax = hourlyMax;
+                }
+            }
+
+            // Initialize hourlyStats for this hour if not exists
             if (!hourlyStats[hour]) {
                 hourlyStats[hour] = {
                     values: [],
@@ -916,10 +985,12 @@ class PanelCalculator {
                     count: 0
                 };
             }
-            hourlyStats[hour].values.push(reading.kwh);
-            hourlyStats[hour].max = Math.max(hourlyStats[hour].max, reading.kwh);
-            hourlyStats[hour].min = Math.min(hourlyStats[hour].min, reading.kwh);
-            hourlyStats[hour].sum += reading.kwh;
+            
+            // Store the adjusted kW value
+            hourlyStats[hour].values.push(adjustedMax);
+            hourlyStats[hour].max = Math.max(hourlyStats[hour].max, adjustedMax);
+            hourlyStats[hour].min = Math.min(hourlyStats[hour].min, adjustedMax);
+            hourlyStats[hour].sum += adjustedMax;
             hourlyStats[hour].count++;
         });
 
