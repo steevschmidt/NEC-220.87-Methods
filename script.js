@@ -913,7 +913,7 @@ class PanelCalculator {
 
         // Group data by hour and apply the same conversion logic as calculatePeakLoad
         const hourlyStats = {};
-        const calculationMethod = document.getElementById('calculationMethod')?.value || 'nec';
+        const calculationMethod = document.getElementById('calculationMethod').value;
         
         // First, group the raw data by hour
         const hourlyGroups = {};
@@ -950,7 +950,7 @@ class PanelCalculator {
                 if (uniqueReadings === 1) {
                     if (calculationMethod === 'hea') {
                         // HEA method: apply 1.3x
-                        adjustedMax *= 1.3;
+                        adjustedMax *= HEA_SINGLE_READING_MULTIPLIER;
                     } else if (calculationMethod === 'lbnl') {
                         // LBNL method for fake 15-minute data
                         // First convert to hourly equivalent
@@ -969,7 +969,7 @@ class PanelCalculator {
                 // Single reading (hourly data)
                 if (calculationMethod === 'hea') {
                     // HEA method: apply 1.3x
-                    adjustedMax = hourlyMax * 1.3;
+                    adjustedMax = hourlyMax * HEA_SINGLE_READING_MULTIPLIER;
                 } else if (calculationMethod === 'lbnl') {
                     // LBNL method for hourly data
                     if (hourlyMax < 7.5) {
@@ -1027,6 +1027,10 @@ class PanelCalculator {
         
         // Round the max amps to a nice round number for better axis readability
         const roundedMaxAmps = Math.ceil(maxAmpsValue / 10) * 10;
+        
+        // Calculate a compatible kW range that will align with the amp range
+        // This prevents Chart.js from auto-scaling both axes to different ranges
+        const compatibleMaxKw = (roundedMaxAmps * panelVoltage) / 1000;
         
         // Create chart with all lines
         this.chart = new Chart(ctx, {
@@ -1117,6 +1121,8 @@ class PanelCalculator {
                             text: 'kW'
                         },
                         beginAtZero: true,
+                        min: 0,
+                        max: compatibleMaxKw,
                         ticks: {
                             callback: function(value) {
                                 return value.toFixed(1);  // Consistent decimal places
