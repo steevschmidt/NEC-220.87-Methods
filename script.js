@@ -319,6 +319,8 @@ class PanelCalculator {
                         data = await this.parsePGECSV(csvContent);
                     } else if (format === 'pge-pv') {
                         data = await this.parsePGEPVCSV(csvContent);
+                    } else if (format === 'utilityapi') {
+                        data = await this.parseUtilityAPICSV(csvContent);
                     }
                     
                     this.log(`Processed ${data.length} valid readings from ${format} format`, 'info');
@@ -538,6 +540,71 @@ class PanelCalculator {
         
         if (data.length === 0) {
             throw new Error('No valid data found in PG&E PV file', { cause: errors });
+        }
+        
+        if (invalidRows > 0) {
+            throw new Error(`Found ${invalidRows} invalid rows`, { cause: errors });
+        }
+        
+        return data;
+    }
+
+    async parseUtilityAPICSV(csvContent) {
+        const rows = csvContent.split('\n');
+        const data = [];
+        const errors = [];
+        let invalidRows = 0;
+        
+        // Find header row
+        if (rows.length === 0) {
+            throw new Error('UtilityAPI file is empty');
+        }
+        
+        const headers = rows[0].split(',');
+        const intervalStartIndex = headers.findIndex(h => h.trim().toLowerCase() === 'interval_start');
+        const intervalEndIndex = headers.findIndex(h => h.trim().toLowerCase() === 'interval_end');
+        const intervalKwhIndex = headers.findIndex(h => h.trim().toLowerCase() === 'interval_kwh');
+        
+        if (intervalStartIndex === -1 || intervalEndIndex === -1 || intervalKwhIndex === -1) {
+            throw new Error('Invalid UtilityAPI file format. Missing required columns.');
+        }
+        
+        // Parse data rows (skip header row)
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i].trim();
+            if (!row || row === ',') continue; // Skip empty rows
+            
+            const columns = this.parseCSVRow(row);
+            const intervalStartStr = columns[intervalStartIndex]?.trim();
+            const intervalEndStr = columns[intervalEndIndex]?.trim();
+            const kwhStr = columns[intervalKwhIndex]?.trim();
+            
+            if (!intervalStartStr || !intervalEndStr || !kwhStr) {
+                errors.push(`Row ${i + 1}: Missing required values`);
+                invalidRows++;
+                continue;
+            }
+            
+            try {
+                // Parse date and time (M/D/YY HH:MM format)
+                const datetime = this.parsePGEDateTime(intervalStartStr);
+                const kwh = parseFloat(kwhStr);
+                
+                if (isNaN(kwh)) {
+                    errors.push(`Row ${i + 1}: Invalid kWh value "${kwhStr}"`);
+                    invalidRows++;
+                    continue;
+                }
+                
+                data.push({ datetime, kwh });
+            } catch (error) {
+                errors.push(`Row ${i + 1}: ${error.message}`);
+                invalidRows++;
+            }
+        }
+        
+        if (data.length === 0) {
+            throw new Error('No valid data found in UtilityAPI file', { cause: errors });
         }
         
         if (invalidRows > 0) {
@@ -1353,7 +1420,7 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
         return {
             summary: `Data spans ${daysCovered} days (${firstDate.toLocaleDateString()} to ${lastDate.toLocaleDateString()})`,
             details: [
-                `File format: ${fileFormat === 'pge-pv' ? 'PG&E Solar PV Export' : fileFormat === 'pge' ? 'PG&E Energy Usage Export' : 'Simple CSV'}`,
+                `File format: ${fileFormat === 'pge-pv' ? 'PG&E Solar PV Export' : fileFormat === 'pge' ? 'PG&E Energy Usage Export' : fileFormat === 'utilityapi' ? 'UtilityAPI' : 'Simple CSV'}`,
                 `First reading: ${firstDate.toLocaleString()}`,
                 `Last reading: ${lastDate.toLocaleString()}`,
                 `Total readings: ${data.length}`,
@@ -1475,6 +1542,12 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
     }
 
     detectFileFormat(csvContent) {
+        // Check for UtilityAPI format (has interval_start, interval_end, interval_kWh columns)
+        const firstLine = csvContent.split('\n')[0].toLowerCase();
+        if (firstLine.includes('interval_start') && firstLine.includes('interval_end') && firstLine.includes('interval_kwh')) {
+            return 'utilityapi';
+        }
+        
         // Check for PG&E PV format (has header with Name, Address, Service, etc. and IMPORT/EXPORT columns)
         if (csvContent.includes('Name,') && csvContent.includes('Address,') && 
             csvContent.includes('Account Number,') && csvContent.includes('Service,') &&
@@ -1489,13 +1562,12 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
         }
         
         // Check for simple format (has DateTime and kWh columns)
-        const firstLine = csvContent.split('\n')[0].toLowerCase();
         if (firstLine.includes('datetime') && firstLine.includes('kwh')) {
             return 'simple';
         }
         
         // Unknown format
-        throw new Error('Unsupported file format. We currently support simple CSV files with DateTime and kWh columns and PG&E energy usage exports. If your file is from your electric utility, please click the "Report Unsupported Format" button below to help us add support for it.');
+        throw new Error('Unsupported file format. We currently support simple CSV files with DateTime and kWh columns, PG&E energy usage exports, and UtilityAPI format. If your file is from your electric utility, please click the "Report Unsupported Format" button below to help us add support for it.');
     }
 
     // Helper method to read file content

@@ -60,16 +60,28 @@
                     </button>
                 </div>
                 <div id="detailedInstructions" class="detailed-instructions hidden">
+                    <h3>Guidelines for all files:</h3>
+                    <ol>
+                        <li>Ensure readings are in chronological order</li>
+                        <li>For best results, include at least 30 days of data, preferably a full year</li>
+                        <li>Data intervals can be 15-minute or hourly</li>
+                    </ol>
+                    
                     <h3>How to get your PG&E smart meter data:</h3>
                     <ol>
                         <li>Log into <a href="https://www.pge.com" target="_blank">pge.com</a></li>
-                        <li>Navigate to "View Usage", and make sure the chart showsElectricity</li>
+                        <li>Navigate to "View Usage", and make sure the chart shows Electricity</li>
                         <li>Click "Green Button Download my data" below the chart </li>
                         <li>Select "Export usage for a range of days"</li>
                         <li>Enter a period of at least 30 days and preferably 1 year</li>
-                        <li>Select Format "CSV"</li>
-                        <li>Select Export</li>
+                        <li>Select Format "CSV", then select Export</li>
                         <li>This downloads a CSV file that can be imported to this tool</li>
+                    </ol>
+
+                    <h3>Using UtilityAPI CSV files:</h3>
+                    <ol>
+                        <li>CSV files from UtilityAPI are supported.</li>
+                        <li>Drop the file in the box below or click within the box to select it from your computer.</li>
                     </ol>
                     
                     <h3>Using your own simple CSV file:</h3>
@@ -79,9 +91,6 @@
                         <li>The <code>DateTime</code> column should contain timestamps in the format: <code>YYYY-MM-DD HH:MM</code> (e.g., <code>2023-01-15 14:30</code>)</li>
                         <li>The <code>kWh</code> column should contain the energy usage in kilowatt-hours for each time interval</li>
                         <li>Include a header row with the column names: <code>DateTime,kWh</code></li>
-                        <li>Ensure readings are in chronological order</li>
-                        <li>For best results, include at least 30 days of data, preferably a full year</li>
-                        <li>Data intervals can be 15-minute or hourly</li>
                     </ol>
                     <p>Example of the first few rows of a valid CSV file:</p>
                     <pre>DateTime,kWh

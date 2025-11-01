@@ -139,6 +139,14 @@ Other validation tests:
 * "Usage" column used for kWh values
 * May contain additional metadata in header rows
 
+### UtilityAPI Format
+* CSV format with header row
+* Multiple columns including: interval_start, interval_end, interval_kWh, and utility-specific metadata
+* "interval_start" column used for DateTime
+* "interval_kWh" column used for kWh values
+* Supports data from various utilities through UtilityAPI's standardized format
+* Date/time format: M/D/YY HH:MM
+
 ## Usage
 
 These files can be used to:
