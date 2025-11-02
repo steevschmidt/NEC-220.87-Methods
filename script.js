@@ -1310,9 +1310,48 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
 
         // Find peak values
         const maxKwh = Math.max(...data.map(d => d.kwh));
+        
+        // Calculate typical interval length from the data
+        // First, determine the typical interval for the dataset
+        let typicalIntervalMinutes = null;
+        if (sortedData.length > 1) {
+            const intervals = [];
+            for (let i = 1; i < Math.min(sortedData.length, 100); i++) {
+                const intervalMs = sortedData[i].datetime.getTime() - sortedData[i-1].datetime.getTime();
+                const intervalMinutes = intervalMs / (1000 * 60);
+                // Only count reasonable intervals (ignore large gaps)
+                if (intervalMinutes > 0 && intervalMinutes <= 120) {
+                    intervals.push(intervalMinutes);
+                }
+            }
+            if (intervals.length > 0) {
+                // Calculate median interval (more robust than average)
+                intervals.sort((a, b) => a - b);
+                const mid = Math.floor(intervals.length / 2);
+                typicalIntervalMinutes = intervals.length % 2 === 0
+                    ? (intervals[mid - 1] + intervals[mid]) / 2
+                    : intervals[mid];
+            }
+        }
+        
+        const formatIntervalLength = (intervalMinutes) => {
+            if (intervalMinutes === null) return 'unknown';
+            
+            // Round to nearest common interval
+            if (intervalMinutes <= 20) {
+                return '15 minute';
+            } else if (intervalMinutes <= 90) {
+                return '60 minute';
+            } else {
+                return `${Math.round(intervalMinutes)} minute`;
+            }
+        };
+        
+        const intervalLengthLabel = formatIntervalLength(typicalIntervalMinutes);
+        
         const peakReadings = data
             .filter(d => d.kwh === maxKwh)
-            .map(d => `${d.datetime.toLocaleString()}: ${d.kwh.toFixed(3)} kWh`)
+            .map(d => `${d.datetime.toLocaleString()} (${intervalLengthLabel} interval): ${d.kwh.toFixed(3)} kWh`)
             .join(', ');
 
         // Group data by hour for pattern analysis
