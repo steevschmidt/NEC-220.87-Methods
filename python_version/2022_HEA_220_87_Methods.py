@@ -1,3 +1,4 @@
+
 """
 NEC 220.87 Panel Capacity Calculator
 
@@ -45,6 +46,7 @@ from altair.utils.deprecation import AltairDeprecationWarning
 import os
 import argparse
 import sys
+from typing import Dict, Tuple, Any, Union
 
 # Suppress Altair deprecation warnings
 warnings.filterwarnings("ignore", category=AltairDeprecationWarning)
@@ -62,8 +64,8 @@ def get_peak_hourly_load(df: pd.DataFrame) -> float:
 
     Args:
         df: Input meter values as pandas DataFrame with columns:
-            "DateTime" (measurement interval start, format "YYYY-MM-DD HH:MM:00") or "interval_start" (format "M/DD/YY HH:MM")
-            "kWh" (measured meter value in kilowatt-hours) or "interval_kWh"
+            "DateTime" (measurement interval start, format "YYYY-MM-DD HH:MM:00")
+            "kWh" (measured meter value in kilowatt-hours)
 
     Returns:
         float: Estimated peak hourly load in kW
@@ -94,34 +96,31 @@ def get_remaining_panel_capacity(peak_hourly_load_kW: float, panel_size_A: int, 
     """
     return panel_size_A * panel_voltage_V / 1000 - 1.25 * peak_hourly_load_kW
 
-def process_inputs(temp_file, panel_size_A, panel_voltage_V):
-    """Process input file and parameters to calculate panel capacity and create visualization.
+def calculate_nec_22087_capacity(ua_intervals: pd.DataFrame, site_table: pd.DataFrame) -> Tuple[Dict[str, Any], Dict[str, float]]:
+    """Process input DataFrame and parameters to calculate panel capacity and create visualization data.
     
     Args:
-        temp_file: CSV file upload containing either DateTime and kWh or interval_start and interval_kWh columns.
-                   Can be a filepath (str) or binary content (bytes).
-        panel_size_A: Panel capacity in amps
-        panel_voltage_V: Panel voltage in volts
+        ua_intervals: Input meter values as pandas DataFrame with columns:
+            "DateTime" (measurement interval start, format "YYYY-MM-DD HH:MM:00") or "interval_start" (format "M/DD/YY HH:MM")
+            "kWh" (measured meter value in kilowatt-hours) or "interval_kWh"
+        site_table: Pandas DataFrame with panel specifications. Must contain one row with columns 'panel_size_A' and 'panel_voltage_V'.
 
     Returns:
-        tuple: (peak_kW, peak_A, remaining_kW, remaining_A, visualization_data)
+        tuple: A tuple of two dicts: (detailed_results, summary_results)
+               detailed_results contains {'df_hourly': visualization pd.DataFrame with columns: hour, stat=peak|max|mean|min, kWh_value }
+               summary_results contains {'peak_hourly_load_kW', 'peak_power_A', 
+                                         'remaining_panel_capacity_kW', 'remaining_panel_capacity_A'}
         
     Raises:
-        ValueError: If file upload fails or processing encounters an error
+        ValueError: If the DataFrame format is not recognized or the site_table has more than one row.
     """
-    if temp_file is None:
-        raise ValueError("Please upload a file")
-        
-    # Handle flexible file input: either a file path (str) or binary content (bytes)
-    if isinstance(temp_file, str):
-        with open(temp_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-    elif isinstance(temp_file, bytes):
-        content = temp_file.decode('utf-8')
-    else:
-        raise TypeError(f"Unsupported input type: {type(temp_file)}")
+    if len(site_table) > 1:
+        raise ValueError("The site table must contain exactly one row for this calculation.")
 
-    df = pd.read_csv(StringIO(content))
+    panel_size_A = site_table['panel_size_A'].iloc[0]
+    panel_voltage_V = site_table['panel_voltage_V'].iloc[0]
+    
+    df = ua_intervals.copy()
 
     # Detect CSV format and rename columns to the expected standard ('DateTime', 'kWh')
     if 'interval_start' in df.columns and 'interval_kWh' in df.columns:
@@ -136,7 +135,7 @@ def process_inputs(temp_file, panel_size_A, panel_voltage_V):
     df['DateTime'] = pd.to_datetime(df['DateTime'], format='mixed')
     df['kWh'] = pd.to_numeric(df['kWh'])
         
-    peak_hourly_load_kW = get_peak_hourly_load(df)
+    peak_hourly_load_kW = get_peak_hourly_load(df.copy()) # Pass a copy to avoid side effects
     remaining_panel_capacity_kW = get_remaining_panel_capacity(peak_hourly_load_kW, panel_size_A, panel_voltage_V)
     
     # Calculate Amp values
@@ -169,12 +168,51 @@ def process_inputs(temp_file, panel_size_A, panel_voltage_V):
     df_hourly = df_hourly.melt(id_vars=['hour', 'stat'], var_name='column', value_name='kWh_value')
     df_hourly = df_hourly.drop('column', axis=1)
 
-    return (peak_hourly_load_kW, peak_power_A, remaining_panel_capacity_kW, remaining_panel_capacity_A, df_hourly)
+    summary_results = {
+        'peak_hourly_load_kW': peak_hourly_load_kW,
+        'peak_power_A': peak_power_A,
+        'remaining_panel_capacity_kW': remaining_panel_capacity_kW,
+        'remaining_panel_capacity_A': remaining_panel_capacity_A,
+    }
 
-def process_inputs_for_gradio(temp_file, panel_size_A, panel_voltage_V):
+    detailed_results = {
+        'df_hourly': df_hourly,
+    }
+
+    return (detailed_results, summary_results)
+
+def calculate_nec_22087_capacity_for_gradio(temp_file: Union[str, bytes], panel_size_A: int, panel_voltage_V: int):
     """A wrapper for Gradio to catch exceptions and convert them to gr.Error."""
     try:
-        return process_inputs(temp_file, panel_size_A, panel_voltage_V)
+        if temp_file is None:
+            raise ValueError("Please upload a file")
+            
+        # Handle flexible file input: either a file path (str) or binary content (bytes)
+        if isinstance(temp_file, str):
+            with open(temp_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+        elif isinstance(temp_file, bytes):
+            content = temp_file.decode('utf-8')
+        else:
+            raise TypeError(f"Unsupported input type: {type(temp_file)}")
+
+        df = pd.read_csv(StringIO(content))
+        
+        site_table = pd.DataFrame({
+            'panel_size_A': [panel_size_A],
+            'panel_voltage_V': [panel_voltage_V]
+        })
+
+        detailed_results, summary_results = calculate_nec_22087_capacity(df, site_table)
+        
+        # Unpack results for Gradio output
+        return (
+            summary_results['peak_hourly_load_kW'], 
+            summary_results['peak_power_A'], 
+            summary_results['remaining_panel_capacity_kW'], 
+            summary_results['remaining_panel_capacity_A'], 
+            detailed_results['df_hourly']
+        )
     except Exception as e:
         raise gr.Error(f"Error processing file: {str(e)}")
 
@@ -205,7 +243,6 @@ def launch_gradio_interface():
             panel_size = gr.Number(label="Current panel capacity in amps", value=150)
             panel_voltage = gr.Number(label="Current panel voltage", value=240)
         
-        # Calculate button moved here, between inputs and outputs
         submit_btn = gr.Button("Calculate")
         
         with gr.Row():
@@ -225,7 +262,6 @@ def launch_gradio_interface():
                 interactive=False
             )
         
-        # Clear button stays at bottom
         with gr.Row():
             clear_btn = gr.ClearButton([file_input, peak_power_kw, peak_power_amps, 
                                       remaining_capacity_kw, remaining_capacity_amps, plot])
@@ -237,7 +273,7 @@ def launch_gradio_interface():
             )
         
         submit_btn.click(
-            fn=process_inputs_for_gradio,
+            fn=calculate_nec_22087_capacity_for_gradio,
             inputs=[file_input, panel_size, panel_voltage],
             outputs=[peak_power_kw, peak_power_amps, 
                     remaining_capacity_kw, remaining_capacity_amps, plot]
@@ -275,10 +311,23 @@ if __name__ == "__main__":
         for file_path in args.files:
             try:
                 print(f"\n--- Processing: {file_path} ---")
-                peak_kw, peak_a, rem_kw, rem_a, _ = process_inputs(file_path, args.panel_size, args.voltage)
+                # Read file into DataFrame before calling the core logic
+                df = pd.read_csv(file_path)
+
+                # Create the site_table DataFrame from command-line arguments
+                site_table = pd.DataFrame({
+                    'panel_size_A': [args.panel_size],
+                    'panel_voltage_V': [args.voltage]
+                })
+                
+                detailed_results, summary_results = calculate_nec_22087_capacity(df, site_table)
+                
+                print(f"  detailed_results {detailed_results}")
+                print(f"  summary_results {summary_results}")
+
                 print(f"  Panel: {args.panel_size}A, {args.voltage}V")
-                print(f"  Calculated Peak Power: {peak_kw:.2f} kW ({peak_a:.1f} A)")
-                print(f"  Remaining Capacity: {rem_kw:.2f} kW ({rem_a:.1f} A)")
+                print(f"  Calculated Peak Power: {summary_results['peak_hourly_load_kW']:.2f} kW ({summary_results['peak_power_A']:.1f} A)")
+                print(f"  Remaining Capacity: {summary_results['remaining_panel_capacity_kW']:.2f} kW ({summary_results['remaining_panel_capacity_A']:.1f} A)")
             except Exception as e:
                 print(f"  Error processing file: {e}", file=sys.stderr)
     else:
