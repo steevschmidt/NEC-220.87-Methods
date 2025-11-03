@@ -18,7 +18,7 @@ Key features:
 - Calculates remaining panel capacity
 
 Interface:
-- Input: CSV file with DateTime and kWh columns
+- Input: CSV file with either DateTime and kWh or interval_start and kWh (UtilityAPI) columns
 - Panel specifications: size (amps) and voltage
 - Outputs: peak power and remaining capacity in both kW and Amps
 - Interactive visualization of hourly load patterns
@@ -112,11 +112,26 @@ def process_inputs(temp_file, panel_size_A, panel_voltage_V):
             
         # Handle file input
         if isinstance(temp_file, str):
-            df = pd.read_csv(StringIO(temp_file), parse_dates=["DateTime"])
+            df = pd.read_csv(StringIO(temp_file))
         else:
             # For binary file uploads
             content = temp_file.decode('utf-8')
-            df = pd.read_csv(StringIO(content), parse_dates=["DateTime"])
+            df = pd.read_csv(StringIO(content))
+
+        # Detect CSV format and rename columns to the expected standard ('DateTime', 'kWh')
+        if 'interval_start' in df.columns and 'interval_kWh' in df.columns:
+            # UtilityAPI format detected: rename columns in-place for compatibility
+            df.rename(columns={'interval_start': 'DateTime', 'interval_kWh': 'kWh'}, inplace=True)
+        elif not ('DateTime' in df.columns and 'kWh' in df.columns):
+            # If neither the UtilityAPI nor the standard columns are present, raise an error
+            raise gr.Error("CSV format not recognized. Required columns are either ('DateTime', 'kWh') or ('interval_start', 'interval_kWh').")
+        
+        # Keep only the essential columns to prevent errors in aggregation functions
+        df = df[['DateTime', 'kWh']]
+        
+        # Ensure correct data types, using format='mixed' to handle multiple date formats efficiently
+        df['DateTime'] = pd.to_datetime(df['DateTime'], format='mixed')
+        df['kWh'] = pd.to_numeric(df['kWh'])
             
         peak_hourly_load_kW = get_peak_hourly_load(df)
         remaining_panel_capacity_kW = get_remaining_panel_capacity(peak_hourly_load_kW, panel_size_A, panel_voltage_V)
