@@ -18,7 +18,7 @@ Key features:
 - Calculates remaining panel capacity
 
 Interface:
-- Input: CSV file with either DateTime and kWh or interval_start and kWh (UtilityAPI) columns
+- Input: CSV file with either DateTime and kWh or interval_start and interval_kWh (UtilityAPI) columns
 - Panel specifications: size (amps) and voltage
 - Outputs: peak power and remaining capacity in both kW and Amps
 - Interactive visualization of hourly load patterns
@@ -43,6 +43,8 @@ from io import StringIO
 import warnings
 from altair.utils.deprecation import AltairDeprecationWarning
 import os
+import argparse
+import sys
 
 # Suppress Altair deprecation warnings
 warnings.filterwarnings("ignore", category=AltairDeprecationWarning)
@@ -60,8 +62,8 @@ def get_peak_hourly_load(df: pd.DataFrame) -> float:
 
     Args:
         df: Input meter values as pandas DataFrame with columns:
-            "DateTime" (measurement interval start, format "YYYY-MM-DD HH:MM:00")
-            "kWh" (measured meter value in kilowatt-hours)
+            "DateTime" (measurement interval start, format "YYYY-MM-DD HH:MM:00") or "interval_start" (format "M/DD/YY HH:MM")
+            "kWh" (measured meter value in kilowatt-hours) or "interval_kWh"
 
     Returns:
         float: Estimated peak hourly load in kW
@@ -96,7 +98,8 @@ def process_inputs(temp_file, panel_size_A, panel_voltage_V):
     """Process input file and parameters to calculate panel capacity and create visualization.
     
     Args:
-        temp_file: CSV file upload containing DateTime and kWh columns
+        temp_file: CSV file upload containing either DateTime and kWh or interval_start and interval_kWh columns.
+                   Can be a filepath (str) or binary content (bytes).
         panel_size_A: Panel capacity in amps
         panel_voltage_V: Panel voltage in volts
 
@@ -104,81 +107,76 @@ def process_inputs(temp_file, panel_size_A, panel_voltage_V):
         tuple: (peak_kW, peak_A, remaining_kW, remaining_A, visualization_data)
         
     Raises:
-        gr.Error: If file upload fails or processing encounters an error
+        ValueError: If file upload fails or processing encounters an error
     """
-    try:
-        if temp_file is None:
-            raise gr.Error("Please upload a file")
-            
-        # Handle file input
-        if isinstance(temp_file, str):
-            df = pd.read_csv(StringIO(temp_file))
-        else:
-            # For binary file uploads
-            content = temp_file.decode('utf-8')
-            df = pd.read_csv(StringIO(content))
+    if temp_file is None:
+        raise ValueError("Please upload a file")
+        
+    # Handle flexible file input: either a file path (str) or binary content (bytes)
+    if isinstance(temp_file, str):
+        with open(temp_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+    elif isinstance(temp_file, bytes):
+        content = temp_file.decode('utf-8')
+    else:
+        raise TypeError(f"Unsupported input type: {type(temp_file)}")
 
-        # Detect CSV format and rename columns to the expected standard ('DateTime', 'kWh')
-        if 'interval_start' in df.columns and 'interval_kWh' in df.columns:
-            # UtilityAPI format detected: rename columns in-place for compatibility
-            df.rename(columns={'interval_start': 'DateTime', 'interval_kWh': 'kWh'}, inplace=True)
-        elif not ('DateTime' in df.columns and 'kWh' in df.columns):
-            # If neither the UtilityAPI nor the standard columns are present, raise an error
-            raise gr.Error("CSV format not recognized. Required columns are either ('DateTime', 'kWh') or ('interval_start', 'interval_kWh').")
-        
-        # Keep only the essential columns to prevent errors in aggregation functions
-        df = df[['DateTime', 'kWh']]
-        
-        # Ensure correct data types, using format='mixed' to handle multiple date formats efficiently
-        df['DateTime'] = pd.to_datetime(df['DateTime'], format='mixed')
-        df['kWh'] = pd.to_numeric(df['kWh'])
-            
-        peak_hourly_load_kW = get_peak_hourly_load(df)
-        remaining_panel_capacity_kW = get_remaining_panel_capacity(peak_hourly_load_kW, panel_size_A, panel_voltage_V)
-        
-        # Calculate Amp values
-        peak_power_A = peak_hourly_load_kW * 1000 / panel_voltage_V
-        remaining_panel_capacity_A = remaining_panel_capacity_kW * 1000 / panel_voltage_V
+    df = pd.read_csv(StringIO(content))
 
-        # Create visualization data
-        df.set_index('DateTime', inplace=True)
-        df['hour'] = df.index.hour
-        df_hourly_mean = df.groupby('hour').mean().reset_index(drop=False)
-        df_hourly_max = df.groupby('hour').max().reset_index(drop=False)
-        df_hourly_min = df.groupby('hour').min().reset_index(drop=False)
-        df_hourly_peak = df.groupby('hour').first().reset_index(drop=False)
-        df_hourly_peak['kWh'] = peak_hourly_load_kW
-
-        df_hourly = pd.concat([
-            df_hourly_peak, 
-            df_hourly_max, 
-            df_hourly_mean,
-            df_hourly_min
-        ], ignore_index=True)
-        
-        df_hourly['stat'] = (
-            ['peak'] * len(df_hourly_peak) + 
-            ['max'] * len(df_hourly_max) + 
-            ['mean'] * len(df_hourly_mean) +
-            ['min'] * len(df_hourly_min)
-        )
-        
-        df_hourly = df_hourly.melt(id_vars=['hour', 'stat'], var_name='column', value_name='kWh_value')
-        df_hourly = df_hourly.drop('column', axis=1)
-
-        return (peak_hourly_load_kW, peak_power_A, remaining_panel_capacity_kW, remaining_panel_capacity_A, df_hourly)
+    # Detect CSV format and rename columns to the expected standard ('DateTime', 'kWh')
+    if 'interval_start' in df.columns and 'interval_kWh' in df.columns:
+        df.rename(columns={'interval_start': 'DateTime', 'interval_kWh': 'kWh'}, inplace=True)
+    elif not ('DateTime' in df.columns and 'kWh' in df.columns):
+        raise ValueError("CSV format not recognized. Required columns are either ('DateTime', 'kWh') or ('interval_start', 'interval_kWh').")
     
+    # Keep only the essential columns to prevent errors in aggregation functions
+    df = df[['DateTime', 'kWh']]
+    
+    # Ensure correct data types, using format='mixed' to handle multiple date formats efficiently
+    df['DateTime'] = pd.to_datetime(df['DateTime'], format='mixed')
+    df['kWh'] = pd.to_numeric(df['kWh'])
+        
+    peak_hourly_load_kW = get_peak_hourly_load(df)
+    remaining_panel_capacity_kW = get_remaining_panel_capacity(peak_hourly_load_kW, panel_size_A, panel_voltage_V)
+    
+    # Calculate Amp values
+    peak_power_A = peak_hourly_load_kW * 1000 / panel_voltage_V
+    remaining_panel_capacity_A = remaining_panel_capacity_kW * 1000 / panel_voltage_V
+
+    # Create visualization data
+    df.set_index('DateTime', inplace=True)
+    df['hour'] = df.index.hour
+    df_hourly_mean = df.groupby('hour').mean().reset_index(drop=False)
+    df_hourly_max = df.groupby('hour').max().reset_index(drop=False)
+    df_hourly_min = df.groupby('hour').min().reset_index(drop=False)
+    df_hourly_peak = df.groupby('hour').first().reset_index(drop=False)
+    df_hourly_peak['kWh'] = peak_hourly_load_kW
+
+    df_hourly = pd.concat([
+        df_hourly_peak, 
+        df_hourly_max, 
+        df_hourly_mean,
+        df_hourly_min
+    ], ignore_index=True)
+    
+    df_hourly['stat'] = (
+        ['peak'] * len(df_hourly_peak) + 
+        ['max'] * len(df_hourly_max) + 
+        ['mean'] * len(df_hourly_mean) +
+        ['min'] * len(df_hourly_min)
+    )
+    
+    df_hourly = df_hourly.melt(id_vars=['hour', 'stat'], var_name='column', value_name='kWh_value')
+    df_hourly = df_hourly.drop('column', axis=1)
+
+    return (peak_hourly_load_kW, peak_power_A, remaining_panel_capacity_kW, remaining_panel_capacity_A, df_hourly)
+
+def process_inputs_for_gradio(temp_file, panel_size_A, panel_voltage_V):
+    """A wrapper for Gradio to catch exceptions and convert them to gr.Error."""
+    try:
+        return process_inputs(temp_file, panel_size_A, panel_voltage_V)
     except Exception as e:
         raise gr.Error(f"Error processing file: {str(e)}")
-
-def show_file_info(file):
-    """Display information about the uploaded file."""
-    if file is None:
-        return "No file uploaded"
-    try:
-        return f"File ready for processing: {file.name}"
-    except:
-        return f"File received but unable to get name: {str(file)}"
 
 def launch_gradio_interface():
     """Launch the Gradio interface for the panel capacity calculator.
@@ -239,7 +237,7 @@ def launch_gradio_interface():
             )
         
         submit_btn.click(
-            fn=process_inputs,
+            fn=process_inputs_for_gradio,
             inputs=[file_input, panel_size, panel_voltage],
             outputs=[peak_power_kw, peak_power_amps, 
                     remaining_capacity_kw, remaining_capacity_amps, plot]
@@ -265,4 +263,24 @@ def launch_gradio_interface():
         )
 
 if __name__ == "__main__":
-    launch_gradio_interface()
+    # If command-line arguments (files) are provided, run in batch mode. Otherwise, launch the UI.
+    if len(sys.argv) > 1:
+        parser = argparse.ArgumentParser(description="Batch process meter data files for panel capacity.")
+        parser.add_argument('files', nargs='+', help="Path to one or more CSV meter data files.")
+        parser.add_argument('--panel-size', type=int, default=150, help="Panel capacity in amps (default: 150)")
+        parser.add_argument('--voltage', type=int, default=240, help="Panel voltage (default: 240)")
+        args = parser.parse_args()
+
+        print("Running in batch mode...")
+        for file_path in args.files:
+            try:
+                print(f"\n--- Processing: {file_path} ---")
+                peak_kw, peak_a, rem_kw, rem_a, _ = process_inputs(file_path, args.panel_size, args.voltage)
+                print(f"  Panel: {args.panel_size}A, {args.voltage}V")
+                print(f"  Calculated Peak Power: {peak_kw:.2f} kW ({peak_a:.1f} A)")
+                print(f"  Remaining Capacity: {rem_kw:.2f} kW ({rem_a:.1f} A)")
+            except Exception as e:
+                print(f"  Error processing file: {e}", file=sys.stderr)
+    else:
+        print("No file arguments provided, launching Gradio web interface...")
+        launch_gradio_interface()
