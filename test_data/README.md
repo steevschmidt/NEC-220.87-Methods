@@ -63,6 +63,11 @@ This directory contains test files for validating the NEC 220.87 panel capacity 
 * Should raise appropriate error messages
 * Tests input data validation
 
+### calculate_solutions_sites.csv and calculate_solutions_solutions.csv
+* Example files for invoking the calculate_solutions.py script (to be used together)
+* calculate_solutions_sites.csv describes existing panel spec and references a meter data file per site
+* calculate_solutions_solutions.csv describes added/removed appliances and load controls
+
 ### PG&E Format Files
 
 ### pge_15min_1mo.csv

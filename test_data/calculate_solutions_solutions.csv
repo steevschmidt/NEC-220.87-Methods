@@ -1,0 +1,5 @@
+site_id,equipment_combo_id,load_control_combo_id,appliance_id,load_status,generic_device,specific_device,load_nameplate_power,load_count,load_control_type,load_control_group
+1,101,1,EVSE-A,new,evse,Level 2 EVSE,7200,1,,
+1,101,1,DRYER-B,new,clothes dryer,Electric Dryer,4500,1,,
+2,201,1,STOVE-A,new,cooking,Induction Stove,7000,1,circuit_sharing,KitchenGroup
+2,201,1,WH-A,new,water_heating,HPWH,4500,1,circuit_sharing,KitchenGroup

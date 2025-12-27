@@ -1,0 +1,3 @@
+site_id,panel_size_A,panel_voltage_V,meter_csv_path
+1,200,240,test5_15min_1yr.csv
+2,100,240,test6_15mPV_1m.csv
