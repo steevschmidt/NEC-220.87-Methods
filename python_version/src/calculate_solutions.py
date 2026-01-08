@@ -124,7 +124,7 @@ def main():
         sys.exit(1)
 
     try:
-        solutions_df = pd.read_csv(args.solutions)
+        solutions_df = pd.read_csv(args.solutions, dtype={"fuel_type": str})
         # Ensure site_id is string to match the sites config
         solutions_df["site_id"] = solutions_df["site_id"].astype(str)
     except Exception as e:
