@@ -328,7 +328,7 @@ def _prepare_ua_intervals(ua_intervals_raw: pd.DataFrame) -> pd.DataFrame:
 
     return (df, file_format)
 
-def get_peak_hourly_load(df: pd.DataFrame) -> float:
+def get_peak_hourly_load(df: pd.DataFrame, hourly_safety_factor: float = 1.3) -> float:
     """Estimates the peak hourly load in kW from meter values.
 
     Implementation follows the methodology from the original Jupyter notebook:
@@ -336,7 +336,7 @@ def get_peak_hourly_load(df: pd.DataFrame) -> float:
 
     Key aspects of the calculation:
     - For 15-minute intervals: multiplies by 4 to get hourly equivalent
-    - Applies 1.3x safety factor for single readings per NEC 220.87
+    - Applies optional safety factor (default: 1.3x) for single readings per NEC 220.87
     - Automatically detects interval type based on data
 
     Args:
@@ -352,7 +352,7 @@ def get_peak_hourly_load(df: pd.DataFrame) -> float:
     df_hourly.columns = df_hourly.columns.map('_'.join)
     df_hourly['period'] = np.where(df_hourly['DateTime_nunique'] == 1, 1, 4)
     df_hourly['kWh_max_adj'] = np.where(df_hourly['kWh_nunique'] == 1,
-                                      df_hourly['kWh_max'] * df_hourly['period'] * 1.3,
+                                      df_hourly['kWh_max'] * df_hourly['period'] * hourly_safety_factor,
                                       df_hourly['kWh_max'] * df_hourly['period'])
     return df_hourly['kWh_max_adj'].max()
 
@@ -436,7 +436,10 @@ def calculate_summary_details(df : pd.DataFrame, file_format : str) -> Dict[str,
         },
     }
 
-def calculate_nec_22087_capacity(ua_intervals: pd.DataFrame, site_spec: Dict[str, float]) -> Tuple[Dict[str, Any], Dict[str, float]]:
+def calculate_nec_22087_capacity(
+    ua_intervals: pd.DataFrame,
+    site_spec: Dict[str, float],
+    hourly_safety_factor: float = 1.3) -> Tuple[Dict[str, Any], Dict[str, float]]:
     """Process input DataFrame and parameters to calculate panel capacity and create visualization data.
 
     Args:
@@ -446,6 +449,7 @@ def calculate_nec_22087_capacity(ua_intervals: pd.DataFrame, site_spec: Dict[str
         site_spec: Dictionary with keys:
             "panel_size_A" (existing panel capacity in A)
             "panel_voltage_V" (optional, default 240V)
+        hourly_safety_factor: see get_peak_hourly_load
 
         Pandas DataFrame with panel specifications. Must contain one row with columns 'panel_size_A' and 'panel_voltage_V'.
 
@@ -467,7 +471,7 @@ def calculate_nec_22087_capacity(ua_intervals: pd.DataFrame, site_spec: Dict[str
     # Calculate summary statistics
     summary_details = calculate_summary_details(df, file_format) if not df.empty else {}
 
-    peak_hourly_load_kW = get_peak_hourly_load(df.copy()) # Pass a copy to avoid side effects
+    peak_hourly_load_kW = get_peak_hourly_load(df.copy(), hourly_safety_factor=hourly_safety_factor) # Pass a copy to avoid side effects
     remaining_panel_capacity_kW = get_remaining_panel_capacity(peak_hourly_load_kW, panel_size_A, panel_voltage_V)
 
     # Calculate Amp values
@@ -519,6 +523,7 @@ def calculate_nec_compliance_for_solutions(
     site_ua_intervals: Dict[Any, pd.DataFrame],
     site_specs: Dict[Any, Dict[str, float]],
     code_edition: str = "2023",
+    hourly_safety_factor: float = 1.3
 ) -> pd.DataFrame:
     """
     1. Calculates the NEC 220.87 compliant observed peak load for each site from the provided site-specific
@@ -559,6 +564,8 @@ def calculate_nec_compliance_for_solutions(
             "panel_voltage_V" (optional, default 240V)
 
         code_edition: NEC edition to use in calculatins: "2023" or "2026"
+        
+        hourly_safety_factor: see get_peak_hourly_load
 
     Returns:
         a pandas DataFrame containing the evaluation result for each solution with columns:
@@ -579,7 +586,7 @@ def calculate_nec_compliance_for_solutions(
     site_peaks = {}
     for site_id, meter_df in site_ua_intervals.items():
         temp_df, _ = _prepare_ua_intervals(meter_df)
-        site_peaks[site_id] = get_peak_hourly_load(temp_df)
+        site_peaks[site_id] = get_peak_hourly_load(temp_df, hourly_safety_factor=hourly_safety_factor)
 
     # 2. Calculate the added/removed loads for each "solution"
     # (defined as a unique combo of site_id, equipment_combo_id and load_control_combo_id)

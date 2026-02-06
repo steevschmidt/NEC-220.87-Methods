@@ -21,6 +21,7 @@ parser = argparse.ArgumentParser(description="Batch process meter data files for
 parser.add_argument('files', nargs='+', help="Path to one or more CSV meter data files.")
 parser.add_argument('--panel-size', type=int, default=150, help="Panel capacity in amps (default: 150)")
 parser.add_argument('--voltage', type=int, default=240, help="Panel voltage (default: 240)")
+parser.add_argument('--hourly-safety-factor', type=float, default=1.3, help="Optional safety factor to apply for single-hour meter values in peak load calculation (default: 1.3)")
 args = parser.parse_args()
 
 print("Running in batch mode...")
@@ -33,7 +34,7 @@ for file_path in args.files:
         'panel_voltage_V': args.voltage
     }
 
-    detailed_results, summary_results = calculate_nec_22087_capacity(df, site_spec)
+    detailed_results, summary_results = calculate_nec_22087_capacity(df, site_spec, hourly_safety_factor=args.hourly_safety_factor)
 
     print("\n  Summary Details:")
     summary_details = detailed_results.get('summary_details', {})

@@ -106,6 +106,14 @@ def main():
     )
 
     parser.add_argument(
+        "--hourly-safety-factor",
+        required=False,
+        type=float,
+        default=1.3,
+        help="Optional safety factor to apply for single-hour meter values in peak load calculation (default: 1.3).",
+    )
+
+    parser.add_argument(
         "--output", help="Optional path to save results as CSV (e.g., results.csv)."
     )
 
@@ -142,6 +150,7 @@ def main():
             site_ua_intervals=site_ua_intervals,
             site_specs=site_specs,
             code_edition=args.edition,
+            hourly_safety_factor=args.hourly_safety_factor,
         )
     except Exception as e:
         print(f"Critical error during calculation: {e}")
