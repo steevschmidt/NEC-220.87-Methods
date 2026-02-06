@@ -328,7 +328,7 @@ def _prepare_ua_intervals(ua_intervals_raw: pd.DataFrame) -> pd.DataFrame:
 
     return (df, file_format)
 
-def get_peak_hourly_load(df: pd.DataFrame, hourly_safety_factor: float = 1.3) -> float:
+def get_peak_hourly_load(df: pd.DataFrame, hourly_safety_factor: float = 1.3, return_idx: bool = False) -> float:
     """Estimates the peak hourly load in kW from meter values.
 
     Implementation follows the methodology from the original Jupyter notebook:
@@ -343,18 +343,31 @@ def get_peak_hourly_load(df: pd.DataFrame, hourly_safety_factor: float = 1.3) ->
         df: Input meter values as pandas DataFrame with columns:
             "DateTime" (measurement interval start, format "YYYY-MM-DD HH:MM:00")
             "kWh" (measured meter value in kilowatt-hours)
+        hourly_safety_factor: safety factor to apply for single-hour data (default: 1.3)
+        return_timestamp: False (default) to return just value; True to return a tuple with (value, row index of value) 
 
     Returns:
         float: Estimated peak hourly load in kW
     """
-    df.set_index('DateTime', inplace=True, drop=False)
-    df_hourly = df.groupby(pd.Grouper(freq='h', level='DateTime')).agg({'kWh': ['max', 'nunique'], 'DateTime': 'nunique'})
+
+    df['__row_idx'] = np.arange(len(df))
+    df.set_index('__row_idx', inplace=True)
+    df_hourly = df.groupby(pd.Grouper(freq='h', key='DateTime')).agg({ 'kWh': ['max', 'nunique', 'idxmax'],  'DateTime': 'nunique' })
     df_hourly.columns = df_hourly.columns.map('_'.join)
     df_hourly['period'] = np.where(df_hourly['DateTime_nunique'] == 1, 1, 4)
-    df_hourly['kWh_max_adj'] = np.where(df_hourly['kWh_nunique'] == 1,
-                                      df_hourly['kWh_max'] * df_hourly['period'] * hourly_safety_factor,
-                                      df_hourly['kWh_max'] * df_hourly['period'])
-    return df_hourly['kWh_max_adj'].max()
+    df_hourly['kWh_max_adj'] = np.where(
+        df_hourly['kWh_nunique'] == 1,
+        df_hourly['kWh_max'] * df_hourly['period'] * hourly_safety_factor,
+        df_hourly['kWh_max'] * df_hourly['period']
+    )
+
+    peak_hour_ts = df_hourly['kWh_max_adj'].idxmax()
+    peak_val = df_hourly.loc[peak_hour_ts, 'kWh_max_adj']
+
+    if return_idx:
+        return peak_val, df_hourly.loc[peak_hour_ts, 'kWh_idxmax']
+    else:
+        return peak_val
 
 def get_remaining_panel_capacity(peak_hourly_load_kW: float, panel_size_A: int, panel_voltage_V=240) -> float:
     """Estimates the remaining panel capacity in kW from panel size and peak hourly load.
@@ -373,11 +386,12 @@ def get_remaining_panel_capacity(peak_hourly_load_kW: float, panel_size_A: int, 
     """
     return panel_size_A * panel_voltage_V / 1000 - 1.25 * peak_hourly_load_kW
 
-def calculate_summary_details(df : pd.DataFrame, file_format : str) -> Dict[str, Any]:
+def calculate_summary_details(df : pd.DataFrame, peak_row_idx, file_format : str) -> Dict[str, Any]:
     """Helper function to output some additional statistics of the provided meter data.
 
     Args:
         df: meter data with columns DateTime and kWh
+        peak_reading_idx: DateTime of peak reading
         file_format: "UtilityAPI" or "Simple CSV"
 
     Returns:
@@ -408,7 +422,7 @@ def calculate_summary_details(df : pd.DataFrame, file_format : str) -> Dict[str,
     if percentage_identical > 50:
         data_types.append("Fake 15-minute")
 
-    peak_reading_row = df.loc[df['kWh'].idxmax()]
+    peak_reading_row = df.iloc[peak_row_idx]
     peak_interval_readings = hourly_groups.loc[peak_reading_row['DateTime'].floor('h')]['readings_count']
     interval_length = 60 if peak_interval_readings == 1 else 15
 
@@ -427,7 +441,7 @@ def calculate_summary_details(df : pd.DataFrame, file_format : str) -> Dict[str,
         "peak_reading": {
             "date_time": peak_reading_row['DateTime'].strftime('%Y-%m-%d %H:%M:%S'),
             "interval_length": interval_length,
-            "value_kWh": peak_reading_row['kWh'].item(),
+            "value_kWh": float(peak_reading_row['kWh'].item() * peak_interval_readings),
         },
         "pattern_analysis": {
             "total_hours_with_single_reading": hours_with_single_reading.item(),
@@ -468,11 +482,16 @@ def calculate_nec_22087_capacity(
 
     (df, file_format) = _prepare_ua_intervals(ua_intervals)
 
-    # Calculate summary statistics
-    summary_details = calculate_summary_details(df, file_format) if not df.empty else {}
+    # Pass a copy of df to avoid side effects
+    peak_hourly_load_kW, peak_row_idx = get_peak_hourly_load(
+        df.copy(),
+        hourly_safety_factor=hourly_safety_factor,
+        return_idx=True)
 
-    peak_hourly_load_kW = get_peak_hourly_load(df.copy(), hourly_safety_factor=hourly_safety_factor) # Pass a copy to avoid side effects
     remaining_panel_capacity_kW = get_remaining_panel_capacity(peak_hourly_load_kW, panel_size_A, panel_voltage_V)
+
+    # Calculate summary statistics
+    summary_details = calculate_summary_details(df, peak_row_idx, file_format) if not df.empty else {}
 
     # Calculate Amp values
     peak_power_A = peak_hourly_load_kW * 1000 / panel_voltage_V
