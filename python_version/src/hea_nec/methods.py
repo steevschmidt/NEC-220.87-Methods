@@ -25,8 +25,7 @@ Interface (for panel capacity calculation):
 - Outputs: peak power and remaining capacity in both kW and Amps; hourly load patterns; summary statistics
 
 Key features (for compliance calculation after adding/removing appliances):
-- Handles 2023 edition of NEC as well as 2026 draft edition (preliminary implementation;
-  the exact accounting for removal of appliances using Calculated Loads in context of 220.87 is not settled yet)
+- Handles 2023 edition of NEC as well as 2026 draft edition (assuming provided correct appliance-specific Demand Factors)
 - Allows batch evaluation for multiple sites, appliance sets and load control combinations ("solutions")
 
 Dependencies:
@@ -42,11 +41,12 @@ import numpy as np
 from typing import Dict, Tuple, Any
 
 
-
 def _apply_nec_appliance_rules(df: pd.DataFrame, code_edition: str = "2023"):
     """
     Applies NEC specific calculation rules (Dryer floor, EV continuous, Range table)
     to a DataFrame of loads. Modifies 'nec_watts' column in place.
+
+    Note: deprecated in favor of _apply_nec_demand_factors
     """
     # 1. Electric Vehicles: Continuous Load (125% per NEC 625.41 / 210.20(A))
     # Applicable in both 2023 and 2026
@@ -191,7 +191,12 @@ def _apply_nec_cooking_aggregation(df: pd.DataFrame):
             if df.loc[idx, "load_nameplate_power"] > 1750:
                 df.loc[idx, "nec_watts"] = alloc_watts
 
-
+def _apply_nec_demand_factors(df: pd.DataFrame, demand_factor_column: str):
+    """
+    Applies NEC specific demand factors to a DataFrame of loads. Modifies 'nec_watts' column in place.
+    'demand_factor_nec_22087_2023' or 'demand_factor_nec_12087_2026' column must exist.
+    """
+    df["nec_watts"] = df["nec_watts"] * df[demand_factor_column]
 
 def _calculate_solution_loads(
     solution_df: pd.DataFrame, code_edition: str = "2023"
@@ -215,7 +220,15 @@ def _calculate_solution_loads(
 
     # Apply appliance-specific rules first.
     # We calculate the "effective" NEC load for every item before load interlocks.
-    _apply_nec_appliance_rules(df, code_edition=code_edition)
+    if code_edition == "2023":
+        demand_factor_column = "demand_factor_nec_22087_2023"
+    else:
+        demand_factor_column = "demand_factor_nec_12087_2026"
+
+    if demand_factor_column in df.columns:
+        _apply_nec_demand_factors(df, demand_factor_column)
+    else:
+        _apply_nec_appliance_rules(df, code_edition=code_edition)
 
     # Apply load control (pausing/sharing).
     # Circuit Pausing: force the NEC calculated load to 0.
@@ -237,7 +250,7 @@ def _calculate_solution_loads(
                     # Set the losers to 0
                     df.loc[mask & (df.index != max_idx), "nec_watts"] = 0
 
-    # Since we already applied the NEC appliance rules ,we can simply sum the results now.
+    # Since we already applied the NEC appliance rules, we can simply sum the results now.
 
     val_added = df.loc[df["load_status"] == "new", "nec_watts"].sum()
 
@@ -532,6 +545,10 @@ def calculate_nec_compliance_for_solutions(
             "load_nameplate_power" (integer, wattage of the appliance type identified by equipment_id)
             "load_count" (integer, number of appliances of the same kind)
             "fuel_type" (string, type of fuel for appliance; if no value specified, assumed "electric");
+            "demand_factor_nec_22087_2023" (float, optional; if the column exists, the provided specific Demand Factor
+                will be used for the appliance in context of NEC 2023 load calculations)
+            "demand_factor_nec_12087_2026" (float, optional; if the column exists, the provided specific Demand Factor
+                will be used for the appliance in context of NEC 2026 load calculations)
 
         site_ua_intervals: Input meter values as dictionary mapping each site_id to a pandas DataFrame with columns:
             "DateTime" (measurement interval start, format "YYYY-MM-DD HH:MM:00") or "interval_start" (format "M/DD/YY HH:MM")

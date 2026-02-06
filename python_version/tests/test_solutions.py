@@ -22,6 +22,9 @@ class TestNEC22087ExampleSolutions(unittest.TestCase):
             "load_control_type", "load_control_group", "fuel_type"
         ]
 
+        self.cols_df = list(self.cols)
+        self.cols_df += [ "demand_factor_nec_22087_2023", "demand_factor_nec_12087_2026" ]
+
     def create_dummy_meter_data(self, peak_kw_value: float) -> pd.DataFrame:
         """
         Creates a dummy 24-hour meter reading DataFrame that results
@@ -249,6 +252,36 @@ class TestNEC22087ExampleSolutions(unittest.TestCase):
         # Check Site 2 Result
         res2 = result[(result['site_id'] == 2)]
         self.assertAlmostEqual(res2['added_load_kw'].iloc[0], 5.0)
+
+    def test_demand_factors(self):
+        """
+        Tests application of demand factors provided in the solutions dataframe.
+        """
+        meter_data = {1: self.create_dummy_meter_data(peak_kw_value=12.04)}
+
+        data = [
+            [1, 101, 1, 'OldHeater', 'removed', 'heating', 'Resistance', 4000, 1, np.nan, np.nan, 'electric', 0.75, 0.5],
+            [1, 101, 1, 'NewPump', 'new', 'heating', 'HeatPump', 2000, 1, np.nan, np.nan, 'electric', 0.8, 0.6 ]
+        ]
+        df_sol = pd.DataFrame(data, columns=self.cols_df)
+
+        result = calculate_nec_compliance_for_solutions(
+            df_sol, meter_data, self.site_specs, code_edition="2026"
+        )
+
+        row = result.iloc[0]
+
+        self.assertEqual(row['removed_load_credit_kw'], 2.0) # 0.5 * 4 kW
+        self.assertEqual(row['added_load_kw'], 1.2) # 0.6 * 2 kW
+
+        result = calculate_nec_compliance_for_solutions(
+            df_sol, meter_data, self.site_specs, code_edition="2023"
+        )
+
+        row = result.iloc[0]
+
+        self.assertEqual(row['removed_load_credit_kw'], 0.0) # no removing of loads in 2023 mode
+        self.assertEqual(row['added_load_kw'], 1.6) # 0.8 * 2 kW
 
 if __name__ == '__main__':
     unittest.main(argv=['first-arg-is-ignored'], exit=False)
