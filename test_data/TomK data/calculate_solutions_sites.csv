@@ -1,2 +1,2 @@
 site_id,panel_size_A,panel_voltage_V,meter_csv_path
-t3_site010,200,240,t3_site010_metering.csv
+t3_site010,200,240,t3_site010_metering_pre.csv
