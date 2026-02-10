@@ -34,7 +34,19 @@ for file_path in args.files:
         'panel_voltage_V': args.voltage
     }
 
-    detailed_results, summary_results = calculate_nec_22087_capacity(df, site_spec, hourly_safety_factor=args.hourly_safety_factor)
+    detailed_results, summary_results = calculate_nec_22087_capacity(
+        df, site_spec, hourly_safety_factor=args.hourly_safety_factor, detect_gaps=True)
+
+    df_gaps = detailed_results['gap_report']
+    if not df_gaps.empty:
+        print("\n  Detected Data Gaps:")
+        for idx, row in df_gaps.iterrows():
+            print(f"    Gap #{idx + 1}: {row['gap_start'].strftime('%Y-%m-%d %H:%M:%S %Z')} - {row['gap_end'].strftime('%Y-%m-%d %H:%M:%S %Z')} ({row['duration']}, {row['missing_intervals']} intervals)")
+        print()
+        print(f"    Total gap duration:      {df_gaps['duration'].sum()}")
+        print(f"    Total missing intervals: {df_gaps['missing_intervals'].sum()}")
+        print(f"    Longest gap:             {df_gaps['duration'].max()}")
+        print(f"    Average gap duration:    {df_gaps['duration'].mean()}")
 
     print("\n  Summary Details:")
     summary_details = detailed_results.get('summary_details', {})

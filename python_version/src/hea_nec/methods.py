@@ -38,6 +38,7 @@ https://up.codes/s/determining-existing-loads.
 
 import pandas as pd
 import numpy as np
+from pytz import timezone, AmbiguousTimeError
 from typing import Dict, Tuple, Any
 
 
@@ -328,6 +329,108 @@ def _prepare_ua_intervals(ua_intervals_raw: pd.DataFrame) -> pd.DataFrame:
 
     return (df, file_format)
 
+def detect_data_gaps(
+    df: pd.DataFrame,
+    time_col="DateTime",
+    tz="America/Los_Angeles"
+) -> pd.DataFrame:
+    """
+    Finds all data gaps (contiguous time ranges with missing values) in the provided dataframe. Handles a mixture of hourly
+    a 15-minute data (i.e. does not report gaps for missing 15-minute intervals if part of the data is hourly).
+
+    Args:
+        df: pandas DataFrame with a timestamp column (measurement interval start, format "YYYY-MM-DD HH:MM:00")
+        time_col: name of the timestamp column (default: "DateTime")
+        tz: (optional, if timestamp is without timezone in input) name of the timezone for the timestamp column,
+            relevant for distinguishing DST changes from genuine gaps (default: "America/Los_Angeles")
+
+    Returns:
+        either an empty pandas DataFrame if no gaps were found or a DataFrame with the following columns:
+            - "gap_start" (pd.Timestamp with timezone)
+            - "gap_end" (pd.Timestamp with timezone)
+            - "duration" (duration of the gap expressed as a pd.Timedelta)
+            - "missing_intervals" (duration of the gap expressed as a number of missing data points)
+    """
+    df = df.copy()
+
+    # Parse datetime & localize timestamp
+    df[time_col] = pd.to_datetime(df[time_col])
+    if df[time_col].dt.tz is None:
+        df[time_col] = df[time_col].dt.tz_localize(
+            tz,
+            ambiguous=False,
+            nonexistent="shift_forward"
+        )
+    else:
+        tz = df[time_col].dt.tz
+
+    df[time_col] = df[time_col].dt.tz_convert("UTC")
+    df = df.sort_values(time_col).reset_index(drop=True)
+    df["delta"] = df[time_col].diff()
+
+    if len(df) < 2:
+        return pd.DataFrame()
+
+    delta_sec = df["delta"].dt.total_seconds()
+
+    # Local expected frequency
+    expected = (
+        delta_sec
+        .rolling(4, center=True, min_periods=4)
+        .median()
+        .bfill()
+        .ffill()
+    )
+
+    # Gap detection
+    gap_mask = delta_sec > (1.5 * expected)
+
+    # DST transition detection
+    df_local = df[time_col].dt.tz_convert(tz)
+    tz_obj = timezone(tz)
+    naive_dates = df_local.dt.tz_localize(None)
+    dst_values = []
+    for dt in naive_dates:
+        try:
+            dst = tz_obj.dst(dt.to_pydatetime(), is_dst=None)
+            dst_values.append(dst)
+        except AmbiguousTimeError:
+            # Handle ambiguous times by choosing the first occurrence
+            dst = tz_obj.dst(dt.to_pydatetime(), is_dst=False)
+            dst_values.append(dst)
+
+    is_dst_change = np.concatenate(([False], np.array(dst_values[1:]) != np.array(dst_values[:-1])))
+
+    gap_mask = gap_mask & ~is_dst_change
+    rows = []
+
+    for idx in df[gap_mask].index:
+        gap_end = df.loc[idx, time_col]
+        last_actual = df.loc[idx - 1, time_col]
+        freq = pd.to_timedelta(expected.loc[idx], unit="s")
+        gap_start = last_actual + freq
+
+        duration = gap_end - gap_start
+        freq = pd.to_timedelta(expected.loc[idx], unit="s")
+
+        missing = max(int(round(duration / freq)), 0)
+
+        rows.append({
+            "gap_start": gap_start,
+            "gap_end": gap_end,
+            "duration": duration,
+            "missing_intervals": missing
+        })
+
+    gap_report = pd.DataFrame(rows)
+
+    # Convert back to local timezone for reporting
+    if not gap_report.empty:
+        gap_report["gap_start"] = gap_report["gap_start"].dt.tz_convert(tz)
+        gap_report["gap_end"] = gap_report["gap_end"].dt.tz_convert(tz)
+
+    return gap_report
+
 def get_peak_hourly_load(df: pd.DataFrame, hourly_safety_factor: float = 1.3, return_idx: bool = False) -> float:
     """Estimates the peak hourly load in kW from meter values.
 
@@ -352,7 +455,13 @@ def get_peak_hourly_load(df: pd.DataFrame, hourly_safety_factor: float = 1.3, re
 
     df['__row_idx'] = np.arange(len(df))
     df.set_index('__row_idx', inplace=True)
-    df_hourly = df.groupby(pd.Grouper(freq='h', key='DateTime')).agg({ 'kWh': ['max', 'nunique', 'idxmax'],  'DateTime': 'nunique' })
+    df['hour_start'] = df['DateTime'].dt.floor('h')
+
+    df_hourly = df.groupby('hour_start').agg({
+        'kWh': ['max', 'nunique', 'idxmax'],
+        'DateTime': 'nunique'
+    })
+
     df_hourly.columns = df_hourly.columns.map('_'.join)
     df_hourly['period'] = np.where(df_hourly['DateTime_nunique'] == 1, 1, 4)
     df_hourly['kWh_max_adj'] = np.where(
@@ -453,7 +562,8 @@ def calculate_summary_details(df : pd.DataFrame, peak_row_idx, file_format : str
 def calculate_nec_22087_capacity(
     ua_intervals: pd.DataFrame,
     site_spec: Dict[str, float],
-    hourly_safety_factor: float = 1.3) -> Tuple[Dict[str, Any], Dict[str, float]]:
+    hourly_safety_factor: float = 1.3,
+    detect_gaps: bool = False) -> Tuple[Dict[str, Any], Dict[str, float]]:
     """Process input DataFrame and parameters to calculate panel capacity and create visualization data.
 
     Args:
@@ -464,6 +574,8 @@ def calculate_nec_22087_capacity(
             "panel_size_A" (existing panel capacity in A)
             "panel_voltage_V" (optional, default 240V)
         hourly_safety_factor: see get_peak_hourly_load
+        detect_gaps: if True, detect_data_gaps will be run over data and the result stored
+            under key 'gap_report' in detailed_results
 
         Pandas DataFrame with panel specifications. Must contain one row with columns 'panel_size_A' and 'panel_voltage_V'.
 
@@ -481,6 +593,9 @@ def calculate_nec_22087_capacity(
     panel_voltage_V = site_spec['panel_voltage_V']
 
     (df, file_format) = _prepare_ua_intervals(ua_intervals)
+
+    if detect_gaps:
+        gap_report = detect_data_gaps(df)
 
     # Pass a copy of df to avoid side effects
     peak_hourly_load_kW, peak_row_idx = get_peak_hourly_load(
@@ -534,6 +649,9 @@ def calculate_nec_22087_capacity(
         'df_hourly': df_hourly,
         'summary_details': summary_details,
     }
+
+    if not gap_report is None:
+        detailed_results['gap_report'] = gap_report
 
     return (detailed_results, summary_results)
 
