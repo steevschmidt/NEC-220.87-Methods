@@ -362,11 +362,15 @@ def detect_data_gaps(
             nonexistent="shift_forward"
         )
     else:
-        tz = df[time_col].dt.tz
+        tz = str(df[time_col].dt.tz)
 
-    df[time_col] = df[time_col].dt.tz_convert("UTC")
-    df = df.sort_values(time_col).reset_index(drop=True)
-    df["delta"] = df[time_col].diff()
+    # Convert to UTC for strictly linear physical time calculation.
+    # This automatically handles DST: 01:00 PST and 03:00 PDT become 09:00 UTC and 10:00 UTC (1 hour delta).
+    df["_utc_time"] = df[time_col].dt.tz_convert("UTC")
+    df = df.sort_values("_utc_time").reset_index(drop=True)
+
+    # Calculate time differences
+    df["delta"] = df["_utc_time"].diff()
 
     if len(df) < 2:
         return pd.DataFrame()
@@ -374,18 +378,27 @@ def detect_data_gaps(
     delta_sec = df["delta"].dt.total_seconds()
 
     # Local expected frequency
-    expected = (
-        delta_sec
-        .rolling(4, center=True, min_periods=4)
-        .median()
-        .bfill()
-        .ffill()
-    )
+    if len(df) < 10:
+        valid_deltas = delta_sec[delta_sec > 0]
+        if valid_deltas.empty:
+            freq_val = 3600  # Default to hourly if no valid deltas
+        else:
+            freq_val = valid_deltas.mode().min() # Use min in case of tie (e.g. mixture of 15min and 1h)
+        expected = pd.Series(freq_val, index=df.index)
+    else:
+        # For larger datasets, rolling median adapts to changing frequencies
+        expected = (
+            delta_sec
+            .rolling(4, center=True, min_periods=4)
+            .median()
+            .bfill()
+            .ffill()
+        )
 
     # Gap detection
     gap_mask = delta_sec > (1.5 * expected)
 
-    # DST transition detection
+    # DST transition detection, e.g. be lenient if there's a 1 hour gap at DST end in November
     df_local = df[time_col].dt.tz_convert(tz)
     tz_obj = timezone(tz)
     naive_dates = df_local.dt.tz_localize(None)
@@ -405,13 +418,12 @@ def detect_data_gaps(
     rows = []
 
     for idx in df[gap_mask].index:
-        gap_end = df.loc[idx, time_col]
-        last_actual = df.loc[idx - 1, time_col]
+        gap_end = df.loc[idx, "_utc_time"]
+        last_actual = df.loc[idx - 1, "_utc_time"]
         freq = pd.to_timedelta(expected.loc[idx], unit="s")
         gap_start = last_actual + freq
 
         duration = gap_end - gap_start
-        freq = pd.to_timedelta(expected.loc[idx], unit="s")
 
         missing = max(int(round(duration / freq)), 0)
 
@@ -550,7 +562,7 @@ def calculate_summary_details(df : pd.DataFrame, peak_row_idx, file_format : str
         "peak_reading": {
             "date_time": peak_reading_row['DateTime'].strftime('%Y-%m-%d %H:%M:%S'),
             "interval_length": interval_length,
-            "value_kWh": float(peak_reading_row['kWh'].item() * peak_interval_readings),
+            "value_kW": float(peak_reading_row['kWh'].item() * peak_interval_readings),
         },
         "pattern_analysis": {
             "total_hours_with_single_reading": hours_with_single_reading.item(),
