@@ -166,6 +166,7 @@ def main():
     display_cols = [
         "site_id",
         "equipment_combo_id",
+        "load_control_combo_id",
         "status",
         "historical_peak_kw",
         "added_load_kw",
