@@ -142,8 +142,6 @@ class PanelCalculator {
             return;
         }
         
-        this.fileInfo.textContent = `File selected: ${file.name}`;
-        
         try {
             // Read file content to detect format
             const fileContent = await this.readFileContent(file);
@@ -168,9 +166,42 @@ class PanelCalculator {
             
             // Enable calculate button
             this.calculateBtn.disabled = false;
+
+            // Confirm upload and guide user to Step 2
+            this.showUploadSuccess(file.name);
+            this.scrollToStep2IfNeeded();
             
         } catch (error) {
             this.showError(error.message, error.details);
+        }
+    }
+
+    showUploadSuccess(fileName) {
+        const safeName = String(fileName)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        this.fileInfo.classList.remove('error');
+        this.fileInfo.classList.add('info');
+        this.fileInfo.innerHTML = `
+            <div class="info-container upload-success">
+                <div class="info-message">
+                    <strong>Data loaded successfully</strong> — ${safeName}.
+                    Next, enter your panel specs in Step 2 below.
+                </div>
+            </div>
+        `;
+    }
+
+    scrollToStep2IfNeeded() {
+        const step2 = document.getElementById('step2');
+        if (!step2) return;
+
+        const rect = step2.getBoundingClientRect();
+        const mostlyVisible = rect.top >= 0 && rect.top <= window.innerHeight * 0.4;
+        if (!mostlyVisible) {
+            step2.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
     
@@ -1522,10 +1553,6 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
             // Clear any previous results
             this.clearResults();
             
-            // Get format from button data attribute if available
-            const button = document.querySelector(`.sample-button[data-file="${filename}"]`);
-            const format = button ? button.dataset.format : null;
-            
             const response = await fetch(`https://raw.githubusercontent.com/steevschmidt/NEC-220.87-Methods/refs/heads/main/test_data/${filename}`);
             if (!response.ok) throw new Error('Failed to load sample data');
             
@@ -1538,19 +1565,8 @@ Note: Please attach your CSV file to this email so we can analyze it and add sup
             dataTransfer.items.add(file);
             this.fileInput.files = dataTransfer.files;
             
-            // Process the file
-            this.validateAndProcessFile(file);
-
-            // Add format info to the message
-            let formatName;
-            if (format === 'pge') {
-                formatName = 'PG&E';
-            } else if (format === 'pge-pv') {
-                formatName = 'PG&E Solar PV';
-            } else {
-                formatName = 'simple';
-            }
-            this.showInfo(`Sample data "${filename}" (${formatName} format) loaded. Click Calculate to process.`);
+            // Process the file (shows success banner and scrolls to Step 2)
+            await this.validateAndProcessFile(file);
         } catch (error) {
             this.showError(`Error loading sample data: ${error.message}`);
         }

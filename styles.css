@@ -561,6 +561,17 @@ select:focus {
     color: #1565c0;
 }
 
+.file-info .upload-success {
+    margin-bottom: 0;
+    margin-top: 0.75rem;
+    background-color: #ecfdf5;
+    border-color: #a7f3d0;
+}
+
+.file-info .upload-success .info-message {
+    color: #065f46;
+}
+
 /* Add these styles to make tooltips appear immediately */
 [title] {
     position: relative;
